@@ -1,0 +1,17 @@
+[project]
+name = "mutli-modal-researcher"
+version = "0.0.1"
+description = "Multi-modal researcher is a Python package that integrates with Google Gemini API to provide multi-modal capabilities for research tasks, including text, image, and video processing."
+authors = [{ name = "Aryan Gautam", email = "aryangautam.dev@gmail.com" }]
+readme = "README.md"
+requires-python = ">=3.11,<4.0"
+dependencies = [
+    "langgraph>=0.2.6",
+    "langchain>=0.3.19",
+    "langchain-google-genai",
+    "python-dotenv>=1.0.1",
+    "langgraph-sdk>=0.1.57",
+    "fastapi",
+    "google-genai",
+    "rich",
+]
