@@ -44,3 +44,6 @@ def create_compiled_graph():
     """Create and compile the research graph"""
     graph = create_research_graph()
     return graph.compile(checkpointer=pg_checkpointer)
+
+
+research_graph = create_compiled_graph()
