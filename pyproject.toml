@@ -14,4 +14,5 @@ dependencies = [
     "fastapi",
     "google-genai",
     "rich",
+    "ipython>=9.4.0",
 ]
