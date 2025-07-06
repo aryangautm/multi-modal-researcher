@@ -1,10 +1,14 @@
 from core.config import Configuration
+from core.database import pg_checkpointer
 from langgraph.graph import END, START, StateGraph
-from schemas.research import (ResearchState, ResearchStateInput,
-                              ResearchStateOutput)
+from schemas.research import ResearchState, ResearchStateInput, ResearchStateOutput
 
-from .nodes import (analyze_video_node, create_report_node,
-                    search_research_node, should_analyze_video)
+from .nodes import (
+    analyze_video_node,
+    create_report_node,
+    search_research_node,
+    should_analyze_video,
+)
 
 
 def create_research_graph() -> StateGraph:
@@ -39,4 +43,4 @@ def create_research_graph() -> StateGraph:
 def create_compiled_graph():
     """Create and compile the research graph"""
     graph = create_research_graph()
-    return graph.compile()
+    return graph.compile(checkpointer=pg_checkpointer)

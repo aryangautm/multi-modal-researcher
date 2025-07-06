@@ -15,4 +15,7 @@ dependencies = [
     "google-genai",
     "rich",
     "ipython>=9.4.0",
+    "langgraph-checkpoint-postgres>=2.0.21",
+    "psycopg-binary>=3.2.9",
+    "psycopg2-binary>=2.9.10",
 ]

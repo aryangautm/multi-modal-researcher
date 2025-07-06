@@ -1,6 +1,6 @@
 from core.llm import genai_client
 from langchain_core.prompts import PromptTemplate
-from prompts.research_report import report_base
+from prompts.research import report_base
 
 
 def create_research_report(
@@ -34,20 +34,20 @@ def create_research_report(
     synthesis_text = synthesis_response.candidates[0].content.parts[0].text
 
     # Step 2: Create markdown report
-    report = f"""# Research Report: {topic}
+    report_sections = [
+        f"# Research Report: {topic}",
+        "## Executive Summary",
+        synthesis_text,
+    ]
 
-            ## Executive Summary
+    if video_url:
+        report_sections.append(f"## Video Source\n- **URL**: {video_url}")
 
-            {synthesis_text}
-
-            ## Video Source
-            - **URL**: {video_url}
-
-            ## Additional Sources
-            {search_sources_text}
-
-            ---
-            *Report generated using multi-modal AI research combining web search and video analysis*
-            """
+    report_sections.append(f"## Additional Sources\n{search_sources_text}")
+    # Add footer
+    report_sections.append(
+        "---\n*Report generated using multi-modal AI research combining web search and video analysis*"
+    )
+    report = "\n\n".join(report_sections)
 
     return report, synthesis_text
