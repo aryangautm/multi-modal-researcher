@@ -1,6 +1,10 @@
 from core.config import Configuration
 from langgraph.graph import END, START, StateGraph
-from schemas.podcast import PodcastState, PodcastStateInput, PodcastStateOutput
+from schemas.podcast.agent_state import (
+    PodcastState,
+    PodcastStateInput,
+    PodcastStateOutput,
+)
 
 from .nodes import create_podcast_node, generate_podcast_script
 
