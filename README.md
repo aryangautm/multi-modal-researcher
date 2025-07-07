@@ -1,4 +1,4 @@
-## ScholarAI: Multi-Modal Researcher
+# ScholarAI: Multi-Modal Researcher
 
 This project revolutionizes research workflows by combining LangGraph with Google Gemini 2.5's powerful capabilities. Enter a topic and optional YouTube URL to instantly receive comprehensive research with citations and an engaging podcast—all automatically generated. No more manual research or content creation bottlenecks.
 
