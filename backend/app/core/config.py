@@ -1,8 +1,12 @@
 import os
 from dataclasses import dataclass, fields
+from pathlib import Path
 from typing import Any, Optional
 
 from langchain_core.runnables import RunnableConfig
+from pydantic_settings import BaseSettings
+
+PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
 
 
 @dataclass(kw_only=True)
@@ -41,3 +45,37 @@ class Configuration:
             if f.init
         }
         return cls(**{k: v for k, v in values.items() if v})
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    GEMINI_API_KEY: str
+    # Database settings
+    DATABASE_URL: str
+
+    # Firebase settings
+    FIREBASE_CREDENTIALS_FILENAME: str
+
+    # Property to get the absolute path to the Firebase credentials file
+    @property
+    def FIREBASE_CREDENTIALS_PATH(self) -> Path:
+        return PROJECT_ROOT / self.FIREBASE_CREDENTIALS_FILENAME
+
+    # AWS Configuration
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_S3_BUCKET_NAME: str
+    AWS_REGION: str
+
+    # Kafka settings for communication
+    KAFKA_BOOTSTRAP_SERVERS: str
+    KAFKA_RESEARCH_TOPIC: str = "research.requests"
+    KAFKA_PODCAST_TOPIC: str = "podcast.requests"
+
+    class Config:
+        env_file = PROJECT_ROOT / ".env"
+        env_file_encoding = "utf-8"
+
+
+settings = Settings()

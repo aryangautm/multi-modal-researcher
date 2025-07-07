@@ -1,21 +1,18 @@
-import os
-
-from dotenv import load_dotenv
 from langgraph.checkpoint.postgres import PostgresSaver
 from psycopg import Connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-load_dotenv()
+from .config import settings
 
 
 class Database:
     def __init__(self):
-        self.POSTGRES_URL = os.getenv("POSTGRES_URL")
-        if not self.POSTGRES_URL:
-            raise ValueError("POSTGRES_URL environment variable not set")
+        self.DATABASE_URL = settings.DATABASE_URL
+        if not self.DATABASE_URL:
+            raise ValueError("DATABASE_URL environment variable not set")
 
-        self.engine = create_engine(self.POSTGRES_URL)
+        self.engine = create_engine(self.DATABASE_URL)
         self.SessionLocal = sessionmaker(
             autocommit=False, autoflush=False, bind=self.engine
         )
@@ -24,7 +21,7 @@ class Database:
             "autocommit": True,
             "prepare_threshold": 0,
         }
-        self.pool = Connection.connect(self.POSTGRES_URL, **memory_connection_kwargs)
+        self.pool = Connection.connect(self.DATABASE_URL, **memory_connection_kwargs)
 
     def get_db(self):
         db = self.SessionLocal()

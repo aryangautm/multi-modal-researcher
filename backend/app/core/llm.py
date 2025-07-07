@@ -1,8 +1,5 @@
-import os
-
-from dotenv import load_dotenv
 from google.genai import Client
 
-load_dotenv()
+from .config import settings
 
-genai_client = Client(api_key=os.getenv("GEMINI_API_KEY"))
+genai_client = Client(api_key=settings.GEMINI_API_KEY)

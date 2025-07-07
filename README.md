@@ -1,10 +1,11 @@
-# Multi-Modal Researcher
+# ScholarAI: Multi-Modal Researcher
 
-This project is a simple research and podcast generation workflow that uses LangGraph with the unique capabilities of Google's Gemini 2.5 model family. It combines three useful features of the Gemini 2.5 model family. You can pass a research topic and, optionally, a YouTube video URL. The system will then perform research on the topic using search, analyze the video, combine the insights, and generate a report with citations as well as a short podcast on the topic for you. It takes advantage of a few of Gemini's native capabilities:
+This project revolutionizes research workflows by combining LangGraph with Google Gemini 2.5's powerful capabilities. Enter a topic and optional YouTube URL to instantly receive comprehensive research with citations and an engaging podcast—all automatically generated. No more manual research or content creation bottlenecks.
 
-- 🎥 [Video understanding and native YouTube tool](https://developers.googleblog.com/en/gemini-2-5-video-understanding/): Integrated processing of YouTube videos
-- 🔍 [Google search tool](https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/): Native Google Search tool integration with real-time web results
-- 🎙️ [Multi-speaker text-to-speech](https://ai.google.dev/gemini-api/docs/speech-generation): Generate natural conversations with distinct speaker voices
+Key Gemini 2.5 integrations:
+- [Video understanding](https://developers.googleblog.com/en/gemini-2-5-video-understanding/): Extract deep insights from YouTube videos
+- [Google search tool](https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/): Native Google Search tool integration with real-time web results
+- [Multi-speaker text-to-speech](https://ai.google.dev/gemini-api/docs/speech-generation): Generate natural conversations with distinct speaker voices
 
 ## Tech Stack
 - **LangGraph**: Framework for building multi-agent workflows
@@ -67,7 +68,8 @@ The system supports runtime configuration through the `Configuration` class:
 - `sarah_voice`: Voice for expert (default: "Puck")
 - Audio format settings for output quality
 
-### Current Project structure
+### Project structure
+```
 multi-modal-researcher/
 ├── README.md
 ├── .gitignore
@@ -107,3 +109,4 @@ multi-modal-researcher/
         └── utils/
             ├── __init__.py
             └── helpers.py (contains the output printer for console output)
+```

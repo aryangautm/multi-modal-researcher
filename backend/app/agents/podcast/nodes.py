@@ -4,7 +4,7 @@ from google.genai import types
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
 from prompts.podcast import podcast_base
-from schemas.podcast import PodcastState
+from schemas.podcast.agent_state import PodcastState
 
 from .tools import create_podcast_name, wave_file
 
