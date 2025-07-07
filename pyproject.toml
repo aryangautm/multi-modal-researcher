@@ -20,4 +20,6 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "uvicorn>=0.35.0",
     "alembic>=1.16.2",
+    "pydantic-settings>=2.10.1",
+    "firebase-admin>=6.9.0",
 ]

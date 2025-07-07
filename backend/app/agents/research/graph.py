@@ -1,12 +1,12 @@
 from core.config import Configuration
 from core.database import pg_checkpointer
 from langgraph.graph import END, START, StateGraph
+
 from ...schemas.research.agent_state import (
     ResearchState,
     ResearchStateInput,
     ResearchStateOutput,
 )
-
 from .nodes import (
     analyze_video_node,
     create_report_node,
