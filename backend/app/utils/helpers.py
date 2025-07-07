@@ -1,5 +1,3 @@
-import wave
-
 from rich.console import Console
 from rich.markdown import Markdown
 

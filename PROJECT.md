@@ -1,4 +1,5 @@
 ## Desired Project Structure
+```
 multi-modal-researcher/
 ├── README.md
 ├── .gitignore
@@ -61,6 +62,7 @@ multi-modal-researcher/
         └── utils/
             ├── __init__.py
             └── helpers.py (contains the output printer for console output)
+```
 
 ## Pending Tasks
 - [ ] Logic to handle session management
