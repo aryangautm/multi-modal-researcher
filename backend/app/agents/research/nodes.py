@@ -2,9 +2,9 @@ from core.config import Configuration
 from core.llm import genai_client
 from google.genai import types
 from langchain_core.runnables import RunnableConfig
-from schemas.research.agent_state import ResearchState
 from utils.helpers import display_gemini_response
 
+from .state import ResearchState
 from .tools import create_research_report
 
 
