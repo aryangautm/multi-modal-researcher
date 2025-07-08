@@ -22,4 +22,5 @@ dependencies = [
     "alembic>=1.16.2",
     "pydantic-settings>=2.10.1",
     "firebase-admin>=6.9.0",
+    "aiokafka>=0.12.0",
 ]
