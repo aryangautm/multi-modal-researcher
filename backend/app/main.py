@@ -1,10 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
-from fastapi.responses import JSONResponse, Response
-
 from app.api.v1.routes import api_router as v1_router
 from app.core.auth import get_current_user, initialize_firebase_app
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import JSONResponse, Response
 
 
 @asynccontextmanager
