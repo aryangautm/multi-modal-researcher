@@ -1,0 +1,41 @@
+name: ScholarAI
+
+services:
+  kafka:
+    image: 'bitnami/kafka:latest'
+    ports:
+      - '9093:9093'
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9092
+      
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9093,CONTROLLER://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9093
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+
+      # Other settings
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    networks:
+      - app-network
+  
+  minio:
+    image: 'minio/minio:latest'
+    platform: linux/amd64
+    ports:
+      - '9000:9000'  # S3 API port
+      - '9001:9001'  # MinIO Console Web UI port
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str
     AWS_S3_BUCKET_NAME: str
     AWS_REGION: str
+    AWS_S3_ENDPOINT_URL: str
 
     # Kafka settings for communication
     KAFKA_BOOTSTRAP_SERVERS: str
