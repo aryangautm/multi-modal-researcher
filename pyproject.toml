@@ -23,4 +23,5 @@ dependencies = [
     "pydantic-settings>=2.10.1",
     "firebase-admin>=6.9.0",
     "aiokafka>=0.12.0",
+    "boto3>=1.39.3",
 ]
