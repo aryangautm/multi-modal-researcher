@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from .endpoints import podcast
+from .endpoints import research
 
 api_router = APIRouter()
 
-api_router.include_router(podcast.router, prefix="/podcast", tags=["podcast"])
+api_router.include_router(research.router, prefix="/v1", tags=["Research"])

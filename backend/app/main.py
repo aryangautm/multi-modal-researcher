@@ -1,16 +1,20 @@
 from contextlib import asynccontextmanager
 
+from app.api.v1.routes import api_router
+from app.core.auth import get_current_user, initialize_firebase_app
+from app.core.messaging import initialize_kafka_producer, shutdown_kafka_producer
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
-
-from app.api.v1.routes import api_router as v1_router
-from app.core.auth import get_current_user, initialize_firebase_app
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("Application starting up...")
     initialize_firebase_app()
+    await initialize_kafka_producer()
     yield
+    print("Application shutting down...")
+    await shutdown_kafka_producer()
 
 
 app = FastAPI(title="Multi-Modal AI Researcher API", lifespan=lifespan)
@@ -20,7 +24,7 @@ app = FastAPI(title="Multi-Modal AI Researcher API", lifespan=lifespan)
 # e.g., app.add_middleware(...)
 
 
-app.include_router(v1_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api")
 
 
 @app.exception_handler(404)

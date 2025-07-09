@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends
-
-from ....schemas.podcast.api_schema import CreatePodcastRequest
+from schemas.podcast import CreatePodcastRequest
 
 router = APIRouter()
 
