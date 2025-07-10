@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 
 # Schema for the data we expect when a user CREATES a research job
@@ -27,3 +27,16 @@ class ResearchJobInDB(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# WebSocket updates
+class JobStatusUpdate(BaseModel):
+    jobId: uuid.UUID = Field(..., alias="id")
+    status: str
+    summary: Optional[str] = None
+    reportUrl: Optional[str] = Field(None, alias="report_url")
+    podcastUrl: Optional[str] = Field(None, alias="podcast_url")
+
+    class Config:
+        from_attributes = True  # Allows creating from a SQLAlchemy model
+        populate_by_name = True  # Allows using both field names and aliases

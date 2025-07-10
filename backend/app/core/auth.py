@@ -1,5 +1,5 @@
 import firebase_admin
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from firebase_admin import auth, credentials
 
@@ -22,6 +22,32 @@ def initialize_firebase_app():
         # This is a critical failure, the app should not start without it.
         print(f"FATAL: Could not initialize Firebase Admin SDK: {e}")
         raise
+
+
+def verify_auth_token(token: str) -> dict:
+    """
+    Verifies a Firebase ID token and returns the decoded payload.
+    Raises an HTTPException if invalid.
+    """
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token not provided",
+        )
+    try:
+        decoded_token = auth.verify_id_token(token)
+        return decoded_token
+    except auth.InvalidIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Firebase ID token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not process authentication token",
+        )
 
 
 # Authentication Dependency
@@ -47,21 +73,14 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    return verify_auth_token(creds.credentials)
+
+
+async def get_current_user_ws(token: str | None = Query(None)) -> dict:
+    """
+    A dependency to authenticate users via a 'token' query parameter for WebSockets.
+    """
     try:
-        # Firebase Admin SDK verifies the token.
-        # It checks the signature, expiration, and audience.
-        token = creds.credentials
-        decoded_token = auth.verify_id_token(token)
-        return decoded_token
-    except auth.InvalidIdTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Firebase ID token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    except Exception:
-        # Catch any other potential errors during verification
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not process authentication token",
-        )
+        return verify_auth_token(token)
+    except HTTPException:
+        return None

@@ -1,9 +1,7 @@
-# backend/app/models/session.py
-
 import uuid
 from enum import Enum as PyEnum
 
-from app.core.database import db  # We'll create this Base in core/database.py
+from app.core.database import db
 from sqlalchemy import Column, DateTime, Enum, ForeignKey, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
