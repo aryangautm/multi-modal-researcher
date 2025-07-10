@@ -19,7 +19,7 @@ from app.core.config import settings
 async def check_kafka_connection():
     """Check basic Kafka connection."""
     try:
-        from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+        from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
         print("🔍 Testing Kafka Producer Connection...")
         producer = AIOKafkaProducer(
@@ -115,8 +115,9 @@ def check_configuration():
 async def test_message_flow():
     """Test sending and receiving a message."""
     try:
-        from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
         import uuid
+
+        from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 
         print("\n🔍 Testing message flow...")
 
