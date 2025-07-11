@@ -1,7 +1,7 @@
 from aiokafka import AIOKafkaProducer
 from app.core.auth import get_current_user
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import db as database
 from app.core.messaging import get_kafka_producer
 from app.models.session import ResearchJob
 from app.schemas.research import ResearchJobCreate, ResearchJobResponse
@@ -19,7 +19,7 @@ router = APIRouter()
 )
 async def create_research_job(
     research_request: ResearchJobCreate,
-    db: Session = Depends(get_db),
+    db: Session = Depends(database.get_db),
     current_user: dict = Depends(get_current_user),
     kafka_producer: AIOKafkaProducer = Depends(get_kafka_producer),
 ):

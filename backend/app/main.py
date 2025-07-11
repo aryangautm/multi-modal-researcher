@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from app.api.v1.routes import api_router
@@ -5,6 +6,10 @@ from app.core.auth import get_current_user, initialize_firebase_app
 from app.core.messaging import initialize_kafka_producer, shutdown_kafka_producer
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, Response
+
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
 
 
 @asynccontextmanager
