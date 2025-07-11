@@ -1,58 +1,69 @@
 import asyncio
+import json
+import logging
+import os
+import sys
 import uuid
 from io import BytesIO
 
-import boto3
-from aiokafka import AIOKafkaConsumer
-from sqlalchemy.orm import Session
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import boto3
+from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from app.core.config import settings
 from app.core.database import db as database
-from app.models.session import ResearchJob, JobStatus
+from app.models.session import JobStatus, ResearchJob
+from app.schemas.research import JobStatusUpdate
+from sqlalchemy.orm import Session
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+# from app.agent.research.graph import create_compiled_graph # TODO: UNCOMMENT THIS
 
 
-async def run_ai_research(topic: str, video_url: str | None) -> tuple[str, bytes]:
-    """
-    Runs the AI research process for a given topic and optional video URL.
+# LOGGING & CONCURRENCY SETUP
+class JsonFormatter(logging.Formatter):
+    def format(self, record):
+        log_record = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "message": record.getMessage(),
+            "job_id": getattr(record, "job_id", "N/A"),
+        }
+        return json.dumps(log_record)
 
-    Args:
-        topic: The research topic.
-        video_url: The optional video URL.
 
-    Returns:
-        A tuple containing (summary_string, pdf_file_bytes).
-    """
-    print(f"AI Agent: Starting research on '{topic}'...")
-    if video_url:
-        print(f"AI Agent: Analyzing video at {video_url}...")
+handler = logging.StreamHandler()
+handler.setFormatter(JsonFormatter())
+logging.basicConfig(level=logging.INFO, handlers=[handler])
 
-    await asyncio.sleep(
-        10
-    )  # TODO: Replace with actual AI processing logic (./app/agents/ implementation)
+# Limit the number of concurrent AI jobs to prevent resource exhaustion
+MAX_CONCURRENT_JOBS = 5
+semaphore = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
 
-    summary = f"This is a comprehensive summary about {topic}. The research indicates significant findings."
 
-    # PDF generation
-    pdf_content = f"PDF Report\n\nTopic: {topic}\n\nThis is the full report content."
-    pdf_bytes = pdf_content.encode("utf-8")
+async def run_ai_research(
+    topic: str, video_url: str | None, job_id: uuid.UUID
+) -> tuple[str, bytes]:
+    # TODO: Integrate your LangGraph agent
+    # research_graph = create_compiled_graph()
+    # result = await research_graph.ainvoke({"topic": topic, "video_url": video_url})
+    # summary = result.get("summary")
+    # pdf_bytes = result.get("report_bytes")
 
-    print("AI Agent: Research and report generation complete.")
+    # Placeholder logic:
+    logging.info(f"AI Agent: Starting research", extra={"job_id": str(job_id)})
+    await asyncio.sleep(25)
+    summary = f"This is a comprehensive summary about {topic}."
+    pdf_bytes = f"PDF Report\n\nTopic: {topic}".encode("utf-8")
+    logging.info(f"AI Agent: Research complete", extra={"job_id": str(job_id)})
     return summary, pdf_bytes
 
 
-async def upload_to_s3(file_bytes: bytes, bucket: str, object_name: str) -> bool:
-    """
-    Uploads a file-like object to an S3 bucket asynchronously.
-
-    Args:
-        file_bytes: The bytes of the file to upload.
-        bucket: The target S3 bucket.
-        object_name: The desired key (path) for the object in S3.
-
-    Returns:
-        True if upload was successful, False otherwise.
-    """
-    print(f"S3 Uploader: Uploading {object_name} to bucket {bucket}...")
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+async def upload_to_s3(
+    file_bytes: bytes, bucket: str, object_name: str, job_id: uuid.UUID
+) -> bool:
+    logging.info(f"S3 Uploader: Uploading {object_name}", extra={"job_id": str(job_id)})
     try:
         s3_client = boto3.client(
             "s3",
@@ -61,92 +72,152 @@ async def upload_to_s3(file_bytes: bytes, bucket: str, object_name: str) -> bool
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_REGION,
         )
-        # Boto3 operations are blocking, so running them in a thread pool
-        # to not block the asyncio event loop.
         await asyncio.to_thread(
             s3_client.upload_fileobj, BytesIO(file_bytes), bucket, object_name
         )
-        print("S3 Uploader: Upload successful.")
+        logging.info("S3 Uploader: Upload successful", extra={"job_id": str(job_id)})
         return True
     except Exception as e:
-        print(f"S3 Uploader: ERROR - Failed to upload to S3: {e}")
-        return False
+        logging.error(
+            f"S3 Uploader: Failed to upload to S3: {e}", extra={"job_id": str(job_id)}
+        )
+        raise  # Re-raise the exception to trigger tenacity's retry mechanism
 
 
-async def process_job(job_id: uuid.UUID):
-    """
-    Processes a single research job from start to finish.
-    """
-    db: Session = database.SessionLocal
+async def publish_status_update(job: ResearchJob, producer: AIOKafkaProducer):
+    """Publishes the current job state to a job-specific Kafka topic."""
+    topic_name = f"job.updates.{job.id}"
+
+    update_payload = JobStatusUpdate.model_validate(job).model_dump_json(by_alias=True)
+
     try:
-        # Fetch the job from the database
-        job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
-        if not job:
-            print(f"ERROR: Job {job_id} not found in database. Skipping.")
-            return
-
-        # CRITICAL: Update status to PROCESSING immediately
-        print(f"[{job.id}] Picked up. Status -> PROCESSING")
-        job.status = JobStatus.PROCESSING
-        db.commit()
-
-        summary, pdf_bytes = await run_ai_research(
-            job.research_topic, job.source_video_url
+        await producer.send_and_wait(topic_name, value=update_payload.encode("utf-8"))
+        logging.info(
+            f"Published status update to topic {topic_name}",
+            extra={"job_id": str(job.id)},
         )
-
-        # Upload the resulting PDF to S3
-        s3_object_key = f"reports/{job.user_id}/{job.id}.pdf"
-        upload_success = await upload_to_s3(
-            pdf_bytes, settings.AWS_S3_BUCKET_NAME, s3_object_key
-        )
-
-        if not upload_success:
-            raise Exception("Failed to upload report to S3.")
-
-        print(f"[{job.id}] Finalizing. Status -> COMPLETED")
-        job.status = JobStatus.COMPLETED
-        job.summary = summary
-        job.report_url = s3_object_key
-        db.commit()
-
     except Exception as e:
-        print(f"[{job_id}] An error occurred during processing: {e}")
-        if "job" in locals() and job:
-            job.status = JobStatus.FAILED
+        logging.error(
+            f"Failed to publish status update for job {job.id}: {e}",
+            extra={"job_id": str(job.id)},
+        )
+
+
+async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
+    """
+    Processes a single research job with concurrency limiting and idempotency.
+    """
+    async with semaphore:
+        db: Session = database.SessionLocal()
+        try:
+            # 1. IDEMPOTENCY CHECK: Fetch the job and check its status
+            job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
+            if not job:
+                logging.error(
+                    f"Job not found in database. Skipping.",
+                    extra={"job_id": str(job_id)},
+                )
+                return
+
+            if job.status != JobStatus.PENDING:
+                logging.warning(
+                    f"Job is not in PENDING state (is {job.status}). Skipping reprocessing.",
+                    extra={"job_id": str(job_id)},
+                )
+                return
+
+            # 2. STATUS UPDATE: Mark as PROCESSING
+            logging.info(
+                f"Picked up. Status -> PROCESSING", extra={"job_id": str(job_id)}
+            )
+            job.status = JobStatus.PROCESSING
             db.commit()
-            print(f"[{job_id}] Status -> FAILED")
-    finally:
-        db.close()
-        print(f"[{job_id}] Processing finished.")
+            db.refresh(job)  # Refresh to get the updated timestamp if you have one
+            await publish_status_update(job, producer)
+
+            # 3. AI WORKFLOW
+            summary, pdf_bytes = await run_ai_research(
+                job.research_topic, job.source_video_url, job.id
+            )
+
+            # 4. S3 UPLOAD
+            s3_object_key = f"reports/{job.user_id}/{job.id}.pdf"
+            await upload_to_s3(
+                pdf_bytes, settings.AWS_S3_BUCKET_NAME, s3_object_key, job.id
+            )
+
+            # 5. FINALIZE JOB and PUBLISH UPDATE
+            logging.info(
+                f"Finalizing. Status -> COMPLETED", extra={"job_id": str(job_id)}
+            )
+            job.status = JobStatus.COMPLETED
+            job.summary = summary
+            job.report_url = s3_object_key
+            db.commit()
+            db.refresh(job)
+            await publish_status_update(job, producer)
+
+        except Exception as e:
+            logging.error(
+                f"An error occurred during processing: {e}",
+                extra={"job_id": str(job_id)},
+            )
+            if "job" in locals() and job:
+                db.rollback()
+                job.status = JobStatus.FAILED
+                db.commit()
+                db.refresh(job)
+                await publish_status_update(job, producer)
+                logging.info(f"Status -> FAILED", extra={"job_id": str(job_id)})
+        finally:
+            db.close()
+            logging.info(f"Processing finished.", extra={"job_id": str(job_id)})
 
 
+# KAFKA CONSUMER MAIN LOOP
 async def main():
-    """
-    The main function that sets up and runs the Kafka consumer.
-    """
-    consumer = AIOKafkaConsumer(
-        settings.KAFKA_RESEARCH_TOPIC,
-        bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
-        group_id="research_worker_group",  # Use a group_id for consumer groups
-        auto_offset_reset="earliest",  # Start reading at the earliest message if no offset is stored
-    )
+    """The main function that runs the Kafka consumer in a robust loop."""
+    producer = None
+    while True:
+        try:
+            producer = AIOKafkaProducer(
+                bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS
+            )
+            await producer.start()
 
-    await consumer.start()
-    print("Research worker started. Waiting for messages...")
-    try:
-        # This loop will run forever, processing messages as they arrive
-        async for msg in consumer:
-            job_id_str = msg.value.decode("utf-8")
-            print(f"\nReceived message: Job ID {job_id_str}")
-            try:
-                job_id = uuid.UUID(job_id_str)
-                # Process each job concurrently without blocking the consumer loop
-                asyncio.create_task(process_job(job_id))
-            except ValueError:
-                print(f"ERROR: Received invalid UUID in message: {job_id_str}")
-    finally:
-        await consumer.stop()
-        print("Research worker stopped.")
+            consumer = AIOKafkaConsumer(
+                settings.KAFKA_RESEARCH_TOPIC,
+                bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+                group_id="research_worker_group",
+                auto_offset_reset="earliest",
+            )
+            await consumer.start()
+            logging.info(
+                "Research worker started successfully. Waiting for messages..."
+            )
+
+            async for msg in consumer:
+                try:
+                    job_id_str = msg.value.decode("utf-8")
+                    job_id = uuid.UUID(job_id_str)
+                    logging.info(f"Received message", extra={"job_id": str(job_id)})
+                    asyncio.create_task(process_job(job_id, producer))
+                except Exception as e:
+                    logging.error(
+                        f"Error processing message value: {msg.value}. Error: {e}",
+                        extra={"job_id": "unknown"},
+                    )
+
+        except Exception as e:
+            logging.error(
+                f"Kafka consumer connection failed: {e}. Retrying in 10 seconds..."
+            )
+            await asyncio.sleep(10)
+        finally:
+            if producer:
+                await producer.stop()
+            if "consumer" in locals():
+                await consumer.stop()
 
 
 if __name__ == "__main__":
