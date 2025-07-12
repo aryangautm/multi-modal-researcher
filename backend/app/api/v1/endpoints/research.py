@@ -1,13 +1,23 @@
+import logging
+import uuid
+
+import boto3
 from aiokafka import AIOKafkaProducer
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import db as database
 from app.core.messaging import get_kafka_producer
-from app.models.session import ResearchJob
-from app.schemas.research import ResearchJobCreate, ResearchJobResponse
-from fastapi import APIRouter, Depends, status
+from app.models.session import JobStatus, ResearchJob
+from app.schemas.research import (
+    PresignedUrlResponse,
+    ResearchJobCreate,
+    ResearchJobResponse,
+)
+from botocore.exceptions import ClientError
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -59,3 +69,70 @@ async def create_research_job(
     )
 
     return {"jobId": db_job.id}
+
+
+@router.get(
+    "/research/{job_id}/report",
+    response_model=PresignedUrlResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get a secure, temporary URL to download a research report",
+)
+async def get_report_download_url(
+    job_id: uuid.UUID,
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Generates a pre-signed URL for downloading a completed research report.
+
+    - This endpoint is protected and requires authentication.
+    - It verifies that the user requesting the report is the one who created the job.
+    - It checks that the report has actually been generated.
+    """
+    user_id = current_user["uid"]
+
+    # 1. Query DB & Authorize: Fetch the job only if the user_id matches.
+    job = (
+        db.query(ResearchJob)
+        .filter(ResearchJob.id == job_id, ResearchJob.user_id == user_id)
+        .first()
+    )
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report not found or you do not have permission to access it.",
+        )
+
+    # 2. Check Job Status
+    if job.status != JobStatus.COMPLETED or not job.report_url:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Report is not yet available for this job.",
+        )
+
+    # 3. Generate Pre-signed URL
+    try:
+        s3_client = boto3.client(
+            "s3",
+            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_REGION,
+        )
+
+        presigned_url = s3_client.generate_presigned_url(
+            "get_object",
+            Params={"Bucket": settings.AWS_S3_BUCKET_NAME, "Key": job.report_url},
+            ExpiresIn=300,  # URL is valid for 5 minutes
+        )
+
+        return {"url": presigned_url}
+
+    except ClientError as e:
+        # Log the error for debugging
+        logging.error(f"Could not generate pre-signed URL for job {job_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not generate download link.",
+        )
