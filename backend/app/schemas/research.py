@@ -40,3 +40,7 @@ class JobStatusUpdate(BaseModel):
     class Config:
         from_attributes = True  # Allows creating from a SQLAlchemy model
         populate_by_name = True  # Allows using both field names and aliases
+
+
+class PresignedUrlResponse(BaseModel):
+    url: HttpUrl
