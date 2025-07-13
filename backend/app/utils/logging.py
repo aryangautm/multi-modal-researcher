@@ -9,7 +9,7 @@ class JsonFormatter(logging.Formatter):
             "level": record.levelname,
             "message": record.getMessage(),
             "job_id": getattr(record, "job_id", "N/A"),
-            "worker": "PodcastWorker",
+            "worker": getattr(record, "worker", "N/A"),
         }
         return json.dumps(log_record)
 
