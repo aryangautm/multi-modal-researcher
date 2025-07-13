@@ -1,112 +1,193 @@
-# ScholarAI: Multi-Modal Researcher
+# 🎓 ScholarAI: Your Personal AI Research & Podcast Studio
 
-This project revolutionizes research workflows by combining LangGraph with Google Gemini 2.5's powerful capabilities. Enter a topic and optional YouTube URL to instantly receive comprehensive research with citations and an engaging podcast—all automatically generated. No more manual research or content creation bottlenecks.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11+-blue.svg" alt="Python Version">
+  <img src="https://img.shields.io/badge/Framework-FastAPI-green" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Messaging-Kafka-black" alt="Kafka">
+  <img src="https://img.shields.io/badge/Orchestration-LangGraph-orange" alt="LangGraph">
+  <img src="https://img.shields.io/badge/License-MIT-lightgrey" alt="License">
+</p>
 
-Key Gemini 2.5 integrations:
-- [Video understanding](https://developers.googleblog.com/en/gemini-2-5-video-understanding/): Extract deep insights from YouTube videos
-- [Google search tool](https://developers.googleblog.com/en/gemini-2-5-thinking-model-updates/): Native Google Search tool integration with real-time web results
-- [Multi-speaker text-to-speech](https://ai.google.dev/gemini-api/docs/speech-generation): Generate natural conversations with distinct speaker voices
+<!-- <p align="center">
+  <i>(A placeholder for GIF showing the UI in action)</i>
+</p> -->
 
-## Tech Stack
-- **LangGraph**: Framework for building multi-agent workflows
-- **Google Gemini 2.5**: LLM for research, video analysis, and text-to-speech
-- **FastAPI**: Web framework for building the API
-- **SQLAlchemy**: ORM for database interactions
-- **PostgreSQL**: Database for session management and storage
-- **Pydantic**: Data validation and settings management
+Effortlessly transform any research topic into a comprehensive, cited report and a studio-quality podcast. ScholarAI leverages a sophisticated, event-driven backend and multi-agent workflows powered by **LangGraph** and **Google Gemini 2.5 Pro** to automate the entire research-to-content pipeline.
 
-## Architecture
+This isn't just a script; it's a production-grade, asynchronous system designed for scalability, resilience, and real-time user feedback.
 
-The system implements a multi-agent architecture using LangGraph, with the following components:
+## ✨ Key Features
 
-### Research Agent
-1. **Search Research Node**: Performs web search using Gemini's Google Search integration
-2. **Analyze Video Node**: Analyzes YouTube videos when provided (conditional)
-3. **Create Report Node**: Synthesizes findings into a comprehensive markdown report
+*   **⚡ Instantaneous API Response**: The API uses an event-driven architecture with Kafka to accept jobs instantly, providing a non-blocking user experience.
+*   **🧠 Multi-Modal Intelligence**: Goes beyond text by analyzing **YouTube videos** to extract deep insights, enriching the final research report.
+*   **🌐 Real-time Web Search**: Integrates Gemini's native **Google Search tool** to ground its research in up-to-the-minute, real-world data with citations.
+*   **🎙️ Multi-Speaker Podcast Generation**: Creates engaging, conversational podcasts with distinct speaker voices using Gemini's advanced TTS capabilities.
+*   **🔴 Live Job Tracking**: Users receive **real-time status updates** pushed from the server via WebSockets, from `PENDING` to `COMPLETED`.
+*   **🔒 Secure, On-Demand Artifacts**: Generated reports and podcasts are stored securely in the cloud and accessed via temporary, pre-signed URLs, ensuring only the owner can download them.
+*   **🏗️ Resilient & Scalable by Design**: Built with a decoupled, multi-worker architecture that can be scaled independently to handle heavy workloads.
 
-### Podcast Agent
-1. **Generate Podcast Script Node**: Creates a natural dialogue script based on research
-2. **Create Podcast Node**: Produces TTS audio with multiple speaker voices
+## 🏛️ System Architecture
 
-### Workflow
+ScholarAI is built on a robust, event-driven architecture that separates the API from the long-running AI tasks. This ensures the system is responsive, scalable, and resilient.
+
+<!-- <p align="center">
+  <i>(A placeholder for a detailed architecture diagram)</i>
+</p> -->
+
+1.  **API Gateway (FastAPI)**: A single, secure entry point for all client requests. It handles user authentication (Firebase), request validation (Pydantic), and immediately offloads work to the message broker.
+2.  **Message Broker (Apache Kafka)**: The central nervous system of the application. The API publishes job requests to Kafka topics (`research.requests`, `podcast.requests`), decoupling the frontend from the backend workers.
+3.  **Source of Truth (PostgreSQL)**: A central database stores the state of every `ResearchJob`, including its status, user ownership, and links to generated artifacts. This prevents state loss and enables seamless context sharing between agents.
+4.  **Async Workers (Python)**: Independent, scalable processes that consume tasks from Kafka.
+    *   `Research Worker`: Handles the multi-modal research and report generation.
+    *   `Podcast Worker`: Handles the scriptwriting and audio generation.
+5.  **Object Storage (MinIO/S3)**: All generated artifacts (PDF reports, MP3 podcasts) are stored securely in a cloud object store.
+6.  **Real-time Layer (WebSockets)**: The API server uses job-specific Kafka topics (`job.updates.{job_id}`) as a pub/sub bus to push live status updates from the workers directly to the correct client via a persistent WebSocket connection.
+
+## 🧠 Agentic Workflow
+
+The AI logic is orchestrated using LangGraph, allowing for complex, stateful, and observable agentic workflows.
 
 ```
 START → Research Agent → [search_research → [analyze_video?] → create_report] → END
-                                                                      ↓
-                                                              (On user request)
-                                                                      ↓
-                          END ← [create_podcast ← generate_podcast_script] ← Podcast Agent
+↓
+(On user request)
+↓
+END ← [create_podcast ← generate_podcast_script] ← Podcast Agent
 ```
 
-The workflow first completes the research process, providing the user with a comprehensive report. Afterward, the user has the option to generate a podcast based on the research results. Session management to maintain research context between agents is currently under development.
 
-### Output
+## 🛠️ Tech Stack
 
-The system generates:
+| Component             | Technology                                                              | Role & Justification                                                                            |
+| --------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **AI Orchestration**  | **LangGraph**                                                           | Manages the stateful, multi-step execution of agentic chains.                                   |
+| **Language Model**    | **Google Gemini 2.5 Pro**                                               | Powers video understanding, search, synthesis, and multi-speaker TTS.                           |
+| **Web Framework**     | **FastAPI**                                                             | High-performance, async-native framework for building the API and WebSocket endpoints.          |
+| **Database ORM**      | **SQLAlchemy**                                                          | Provides a robust, programmatic interface to the PostgreSQL database.                           |
+| **Database**          | **PostgreSQL**                                                          | The central "source of truth" for job state, user data, and artifact metadata.                  |
+| **Data Validation**   | **Pydantic**                                                            | Enforces strict data schemas for API requests, responses, and application settings.             |
+| **Messaging**         | **Apache Kafka**                                                        | A distributed event streaming platform for a highly scalable, decoupled, and resilient backend. |
+| **Object Storage**    | **MinIO (or AWS S3)**                                                   | Secure, scalable storage for generated PDF reports and audio files.                             |
+| **Authentication**    | **Firebase Auth**                                                       | Handles secure user authentication using industry-standard JWTs.                                  |
+| **Containerization**  | **Docker & Docker Compose**                                             | Ensures a consistent, reproducible development and deployment environment.                      |
 
-- **Research Report**: Comprehensive markdown report with executive summary and sources
-- **Podcast Script**: Natural dialogue between Dr. Sarah (expert) and Mike (interviewer)  
-- **Audio File**: Multi-speaker TTS audio file (`research_podcast_*.wav`)
+## 🚀 Getting Started
 
-## Configuration
+Follow these steps to get ScholarAI running locally.
 
-The system supports runtime configuration through the `Configuration` class:
+### Prerequisites
 
-### Model Settings
-- `search_model`: Model for web search (default: "gemini-2.5-flash")
-- `synthesis_model`: Model for report synthesis (default: "gemini-2.5-flash")
-- `video_model`: Model for video analysis (default: "gemini-2.5-flash")
-- `tts_model`: Model for text-to-speech (default: "gemini-2.5-flash-preview-tts")
+*   [Git](https://git-scm.com/)
+*   [Docker](https://www.docker.com/products/docker-desktop/) & Docker Compose
+*   **Python 3.11+**
+*   [`uv`](https://github.com/astral-sh/uv): An extremely fast Python package installer and resolver.
+    ```bash
+    # Install uv (if you don't have it)
+    pip install uv
+    ```
 
-### Temperature Settings
-- `search_temperature`: Factual search queries (default: 0.0)
-- `synthesis_temperature`: Balanced synthesis (default: 0.3)
-- `podcast_script_temperature`: Creative dialogue (default: 0.4)
+### 1. Clone the Repository
 
-### TTS Settings
-- `mike_voice`: Voice for interviewer (default: "Kore")
-- `sarah_voice`: Voice for expert (default: "Puck")
-- Audio format settings for output quality
-
-### Project structure
+```bash
+git clone https://github.com/aryangautm/multi-modal-researcher.git
+cd multi-modal-researcher
 ```
-multi-modal-researcher/
-├── README.md
-├── .gitignore
-├── pyproject.toml
-├── .env.example
-└── backend/
-    └── app/
-        ├── __init__.py
-        ├── main.py
-        ├── agent/
-        │   ├── podcast/
-        │   │   ├── __init__.py
-        │   │   ├── graph.py
-        │   │   ├── nodes.py
-        │   │   └── tools.py
-        │   └── research/
-        │       ├── __init__.py
-        │       ├── graph.py
-        │       ├── nodes.py
-        │       └── tools.py
-        ├── core/
-        │   ├── __init__.py
-        │   ├── config.py
-        │   ├── llm.py (contains the gemini genai sdk client setup)
-        │   └── database.py
-        ├── models/
-        │   ├── __init__.py
-        │   └── session.py
-        ├── schemas/
-        │   ├── __init__.py
-        │   ├── podcast.py
-        │   └── research.py
-        ├── prompts/
-        │   ├── __init__.py
-        │   ├── podcast.py
-        │   └── research.py
-        └── utils/
-            ├── __init__.py
-            └── helpers.py (contains the output printer for console output)
+
+### 2. Configure Environment Variables
+
+Create a `.env` file in the project root by copying the example file:
+
+```bash
+cp .env.example .env
 ```
+
+Now, edit the `.env` file and fill in your credentials and settings:
+
+- `DATABASE_URL`
+- `FIREBASE_CREDENTIALS_PATH` (Point this to your Firebase Admin SDK JSON key file)
+- `GOOGLE_API_KEY`
+- MinIO/AWS credentials (the defaults in `docker-compose.yml` match the `.env.example`)
+
+### 3. Install Dependencies
+
+Install all Python dependencies for the backend using [`uv`](https://pypi.org/project/uv/).
+
+```bash
+# Navigate to the backend directory
+cd backend
+
+# Sync dependencies from pyproject.toml
+uv sync
+```
+
+### 4. Start Infrastructure Services
+
+From the project root directory, start Kafka, MinIO, and PostgreSQL using Docker Compose.
+
+```bash
+docker-compose up --build -d
+```
+
+> Note: The `-d` flag runs the services in the background. You can check their status with `docker-compose ps`.
+
+### 5. Apply Database Migrations
+
+With the database container running, apply the initial schema using Alembic.
+
+```bash
+# From the 'backend' directory
+alembic upgrade head
+```
+
+### 6. Run the Application
+
+You need to run three separate processes in three different terminals from the project root directory.
+
+#### Terminal 1: Start the API Server
+
+```bash
+# In project root
+cd backend && uvicorn app.main:app --reload --port 8000
+```
+
+The API will be available at [http://localhost:8000](http://localhost:8000).
+
+#### Terminal 2: Start the Research Worker
+
+```bash
+# In project root
+python -m backend.workers.research_worker
+```
+
+This worker will listen for jobs on the `research.requests` topic.
+
+#### Terminal 3: Start the Podcast Worker
+
+```bash
+# In project root
+python -m backend.workers.podcast_worker
+```
+
+This worker will listen for jobs on the `podcast.requests` topic.
+
+---
+
+## 🔐 API Endpoints
+
+The API documentation is automatically generated by FastAPI and available at [http://localhost:8000/docs](http://localhost:8000/docs).
+
+| Method  | Path                                        | Auth? | Description                                                  |
+|---------|---------------------------------------------|-------|--------------------------------------------------------------|
+| POST    | `/api/v1/research-jobs`                    | ✅    | Submits a new research topic. Returns `202 Accepted`.        |
+| POST    | `/api/v1/research-jobs/{job_id}/podcast`   | ✅    | Triggers podcast generation for a completed job.             |
+| GET     | `/api/v1/research-jobs/{job_id}/report`    | ✅    | Gets a temporary, secure URL to download the PDF report.     |
+| GET     | `/api/v1/research-jobs/{job_id}/podcast`   | ✅    | Gets a temporary, secure URL to download the audio file.     |
+| WebSocket | `/ws/jobs/{job_id}?token=<jwt>`          | ✅    | Establishes a real-time connection for job status updates.   |
+
+---
+
+## 💡 Future Roadmap
+
+- **Agentic Chat**: Implement a follow-up chat interface for users to query the research report.
+- **More Modalities**: Add support for analyzing images and other document types.
+
