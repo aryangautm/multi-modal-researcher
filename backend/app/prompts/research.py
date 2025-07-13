@@ -2,7 +2,7 @@ report_base = """
 You are a research analyst. I have gathered information about "{topic}" from two sources:
 
 SEARCH RESULTS:
-{search_text}
+{research_text}
 
 VIDEO CONTENT:
 {video_text}

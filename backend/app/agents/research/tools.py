@@ -1,10 +1,10 @@
-from core.llm import genai_client
+from app.core.llm import genai_client
+from app.prompts.research import report_base
 from langchain_core.prompts import PromptTemplate
-from prompts.research import report_base
 
 
 def create_research_report(
-    topic, search_text, video_text, search_sources_text, video_url, configuration=None
+    topic, research_text, video_text, search_sources_text, video_url, configuration=None
 ):
     """Create a comprehensive research report by synthesizing search and video content"""
 
@@ -18,7 +18,7 @@ def create_research_report(
     synthesis_prompt = PromptTemplate.from_template(report_base).invoke(
         {
             "topic": topic,
-            "search_text": search_text,
+            "research_text": research_text,
             "video_text": video_text,
         }
     )
@@ -50,4 +50,4 @@ def create_research_report(
     )
     report = "\n\n".join(report_sections)
 
-    return report, synthesis_text
+    return report
