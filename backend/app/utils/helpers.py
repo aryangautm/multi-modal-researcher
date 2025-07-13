@@ -2,6 +2,27 @@ from rich.console import Console
 from rich.markdown import Markdown
 
 
+def extract_text_and_sources(response):
+    text = response.candidates[0].content.parts[0].text
+    candidate = response.candidates[0]
+
+    sources_text = ""
+
+    # Display grounding metadata if available
+    if hasattr(candidate, "grounding_metadata") and candidate.grounding_metadata:
+        if candidate.grounding_metadata.grounding_chunks:
+            sources_list = []
+            for i, chunk in enumerate(candidate.grounding_metadata.grounding_chunks, 1):
+                if hasattr(chunk, "web") and chunk.web:
+                    title = getattr(chunk.web, "title", "No title") or "No title"
+                    uri = getattr(chunk.web, "uri", "No URI") or "No URI"
+                    sources_list.append(f"{i}. {title}\n   {uri}")
+
+            sources_text = "\n".join(sources_list)
+
+    return text, sources_text
+
+
 def display_gemini_response(response):
     """Extract text from Gemini response and display as markdown with references"""
     console = Console()

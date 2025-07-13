@@ -33,7 +33,7 @@ class ResearchJobInDB(BaseModel):
 class JobStatusUpdate(BaseModel):
     jobId: uuid.UUID = Field(..., alias="id")
     status: str
-    summary: Optional[str] = None
+    research_text: Optional[str] = None
     reportUrl: Optional[str] = Field(None, alias="report_url")
     podcastUrl: Optional[str] = Field(None, alias="podcast_url")
 
