@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import sys
@@ -12,28 +11,15 @@ import boto3
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from app.core.config import settings
 from app.core.database import db as database
+from app.core.messaging import publish_status_update
 from app.models.session import JobStatus, ResearchJob
-from app.schemas.research import JobStatusUpdate
+from app.utils.logging import handler
 from sqlalchemy.orm import Session
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 # from app.agent.research.graph import create_compiled_graph # TODO: UNCOMMENT THIS
 
 
-# LOGGING & CONCURRENCY SETUP
-class JsonFormatter(logging.Formatter):
-    def format(self, record):
-        log_record = {
-            "timestamp": self.formatTime(record, self.datefmt),
-            "level": record.levelname,
-            "message": record.getMessage(),
-            "job_id": getattr(record, "job_id", "N/A"),
-        }
-        return json.dumps(log_record)
-
-
-handler = logging.StreamHandler()
-handler.setFormatter(JsonFormatter())
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 # Limit the number of concurrent AI jobs to prevent resource exhaustion
@@ -82,25 +68,6 @@ async def upload_to_s3(
             f"S3 Uploader: Failed to upload to S3: {e}", extra={"job_id": str(job_id)}
         )
         raise  # Re-raise the exception to trigger tenacity's retry mechanism
-
-
-async def publish_status_update(job: ResearchJob, producer: AIOKafkaProducer):
-    """Publishes the current job state to a job-specific Kafka topic."""
-    topic_name = f"job.updates.{job.id}"
-
-    update_payload = JobStatusUpdate.model_validate(job).model_dump_json(by_alias=True)
-
-    try:
-        await producer.send_and_wait(topic_name, value=update_payload.encode("utf-8"))
-        logging.info(
-            f"Published status update to topic {topic_name}",
-            extra={"job_id": str(job.id)},
-        )
-    except Exception as e:
-        logging.error(
-            f"Failed to publish status update for job {job.id}: {e}",
-            extra={"job_id": str(job.id)},
-        )
 
 
 async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
@@ -159,7 +126,7 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
 
         except Exception as e:
             logging.error(
-                f"An error occurred during processing: {e}",
+                f"An error occurred during research processing: {e}",
                 extra={"job_id": str(job_id)},
             )
             if "job" in locals() and job:
@@ -171,7 +138,9 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
                 logging.info(f"Status -> FAILED", extra={"job_id": str(job_id)})
         finally:
             db.close()
-            logging.info(f"Processing finished.", extra={"job_id": str(job_id)})
+            logging.info(
+                f"Research Processing finished.", extra={"job_id": str(job_id)}
+            )
 
 
 # KAFKA CONSUMER MAIN LOOP
