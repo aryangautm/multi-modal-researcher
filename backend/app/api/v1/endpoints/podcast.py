@@ -48,7 +48,7 @@ async def create_podcast_from_research(
         )
 
     # 2. State Check: Ensure the job is in the correct state to start a podcast
-    if job.status != JobStatus.COMPLETED:
+    if job.status not in [JobStatus.COMPLETED, JobStatus.PODCAST_FAILED]:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Cannot generate podcast. Job status is '{job.status}', must be 'COMPLETED'.",
