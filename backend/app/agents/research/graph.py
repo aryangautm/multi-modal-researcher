@@ -1,11 +1,10 @@
-from core.config import Configuration
-from core.database import pg_checkpointer
+from app.core.config import Configuration
 from langgraph.graph import END, START, StateGraph
 
 from .nodes import (
     analyze_video_node,
     create_report_node,
-    search_research_node,
+    research_node,
     should_analyze_video,
 )
 from .state import ResearchState, ResearchStateInput, ResearchStateOutput
@@ -23,14 +22,14 @@ def create_research_graph() -> StateGraph:
     )
 
     # Add nodes
-    graph.add_node("search_research", search_research_node)
+    graph.add_node("research", research_node)
     graph.add_node("analyze_video", analyze_video_node)
     graph.add_node("create_report", create_report_node)
 
     # Add edges
-    graph.add_edge(START, "search_research")
+    graph.add_edge(START, "research")
     graph.add_conditional_edges(
-        "search_research",
+        "research",
         should_analyze_video,
         {"analyze_video": "analyze_video", "create_report": "create_report"},
     )
@@ -40,10 +39,7 @@ def create_research_graph() -> StateGraph:
     return graph
 
 
-def create_compiled_graph():
+def create_compiled_graph(checkpointer=None):
     """Create and compile the research graph"""
     graph = create_research_graph()
-    return graph.compile(checkpointer=pg_checkpointer)
-
-
-research_graph = create_compiled_graph()
+    return graph.compile(checkpointer=checkpointer)

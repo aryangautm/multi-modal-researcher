@@ -16,8 +16,8 @@ class ResearchStateOutput(TypedDict):
 
     # Final outputs
     report: Optional[str]
-    podcast_script: Optional[str]
-    podcast_filename: Optional[str]
+    research_text: Optional[str]
+    video_text: Optional[str]
 
 
 class ResearchState(TypedDict):
@@ -28,12 +28,9 @@ class ResearchState(TypedDict):
     video_url: Optional[str]
 
     # Intermediate results
-    search_text: Optional[str]
     search_sources_text: Optional[str]
-    video_text: Optional[str]
 
     # Final outputs
     report: Optional[str]
-    synthesis_text: Optional[str]
-    podcast_script: Optional[str]
-    podcast_filename: Optional[str]
+    research_text: Optional[str]
+    video_text: Optional[str]

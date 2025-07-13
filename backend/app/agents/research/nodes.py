@@ -1,14 +1,14 @@
-from core.config import Configuration
-from core.llm import genai_client
+from app.core.config import Configuration
+from app.core.llm import genai_client
+from app.utils.helpers import extract_text_and_sources
 from google.genai import types
 from langchain_core.runnables import RunnableConfig
-from utils.helpers import display_gemini_response
 
 from .state import ResearchState
 from .tools import create_research_report
 
 
-def search_research_node(state: ResearchState, config: RunnableConfig) -> dict:
+def research_node(state: ResearchState, config: RunnableConfig) -> dict:
     """Node that performs web search research on the topic"""
     configuration = Configuration.from_runnable_config(config)
     topic = state["topic"]
@@ -22,9 +22,9 @@ def search_research_node(state: ResearchState, config: RunnableConfig) -> dict:
         },
     )
 
-    search_text, search_sources_text = display_gemini_response(search_response)
+    research_text, search_sources_text = extract_text_and_sources(search_response)
 
-    return {"search_text": search_text, "search_sources_text": search_sources_text}
+    return {"research_text": research_text, "search_sources_text": search_sources_text}
 
 
 def analyze_video_node(state: ResearchState, config: RunnableConfig) -> dict:
@@ -48,7 +48,7 @@ def analyze_video_node(state: ResearchState, config: RunnableConfig) -> dict:
         ),
     )
 
-    video_text, _ = display_gemini_response(video_response)
+    video_text, _ = extract_text_and_sources(video_response)
 
     return {"video_text": video_text}
 
@@ -57,16 +57,16 @@ def create_report_node(state: ResearchState, config: RunnableConfig) -> dict:
     """Node that creates a comprehensive research report"""
     configuration = Configuration.from_runnable_config(config)
     topic = state["topic"]
-    search_text = state.get("search_text", "")
+    research_text = state.get("research_text", "")
     video_text = state.get("video_text", "")
     search_sources_text = state.get("search_sources_text", "")
     video_url = state.get("video_url", "")
 
-    report, synthesis_text = create_research_report(
-        topic, search_text, video_text, search_sources_text, video_url, configuration
+    report = create_research_report(
+        topic, research_text, video_text, search_sources_text, video_url, configuration
     )
 
-    return {"report": report, "synthesis_text": synthesis_text}
+    return {"report": report}
 
 
 def should_analyze_video(state: ResearchState) -> str:

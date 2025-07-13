@@ -24,4 +24,6 @@ dependencies = [
     "firebase-admin>=6.9.0",
     "aiokafka>=0.12.0",
     "boto3>=1.39.3",
+    "pytest>=8.4.1",
+    "fpdf2>=2.8.3",
 ]
