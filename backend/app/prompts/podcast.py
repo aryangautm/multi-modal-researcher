@@ -4,7 +4,7 @@ Create a natural, engaging podcast conversation between Dr. Sarah (research expe
 Use this research content:
 
 SEARCH FINDINGS:
-{search_text}
+{research_text}
 
 VIDEO INSIGHTS:
 {video_text}

@@ -9,11 +9,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import boto3
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
+from app.agents.podcast.graph import create_compiled_graph
 from app.core.config import settings
-from app.core.database import SessionLocal
+from app.core.database import db as database
 from app.core.messaging import publish_status_update
 from app.models.session import JobStatus, ResearchJob
 from app.utils.logging import handler
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.orm import Session
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -24,25 +26,38 @@ semaphore = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
 
 
 async def run_ai_podcast_generation(
-    summary: str, topic: str, job_id: uuid.UUID
-) -> bytes:
-    """Simulates the AI podcast generation process."""
-    # TODO: Integrate your LangGraph podcast agent here
-    # podcast_graph = create_podcast_graph()
-    # result = await podcast_graph.ainvoke({"summary": summary, "topic": topic})
-    # podcast_audio_bytes = result.get("audio_bytes")
-
+    research_text: str, video_text: str, topic: str, job_id: uuid.UUID
+) -> tuple[bytes, str]:
+    """AI podcast generation process."""
     logging.info(
         f"AI Agent: Starting podcast generation", extra={"job_id": str(job_id)}
     )
-    await asyncio.sleep(15)  # Simulate long-running audio generation
-    podcast_audio_bytes = (
-        f"This is a simulated MP3 audio file for the topic: {topic}".encode("utf-8")
-    )
+    try:
+        async with AsyncPostgresSaver.from_conn_string(
+            database.DATABASE_URL
+        ) as checkpointer:
+            podcast_graph = create_compiled_graph(checkpointer)
+            result = await podcast_graph.ainvoke(
+                {
+                    "research_text": research_text,
+                    "video_text": video_text,
+                    "topic": topic,
+                },
+                config={"thread_id": str(job_id)},
+            )
+    except Exception as e:
+        logging.error(
+            f"AI Agent: Error during podcast generation: {e}",
+            extra={"job_id": str(job_id)},
+        )
+        raise
+    audio_bytes = result.get("podcast_audio_bytes")
+    podcast_script = result.get("podcast_script")
+
     logging.info(
         f"AI Agent: Podcast generation complete", extra={"job_id": str(job_id)}
     )
-    return podcast_audio_bytes
+    return audio_bytes, podcast_script
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
@@ -72,7 +87,7 @@ async def upload_audio_to_s3(
 
 async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
     async with semaphore:
-        db: Session = SessionLocal()
+        db: Session = database.SessionLocal()
         try:
             job = db.query(ResearchJob).filter(ResearchJob.id == job_id).first()
             if not job:
@@ -87,8 +102,8 @@ async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             logging.info(
                 f"Picked up for podcast generation.", extra={"job_id": str(job_id)}
             )
-            audio_bytes = await run_ai_podcast_generation(
-                job.summary, job.research_topic, job.id
+            audio_bytes, podcast_script = await run_ai_podcast_generation(
+                job.research_text, job.video_text, job.research_topic, job.id
             )
 
             s3_object_key = f"podcasts/{job.user_id}/{job.id}.mp3"
@@ -102,6 +117,7 @@ async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             )
             job.status = JobStatus.PODCAST_COMPLETED
             job.podcast_url = s3_object_key
+            job.podcast_script = podcast_script
             db.commit()
             db.refresh(job)
             await publish_status_update(job, producer)  # Notify WebSocket clients
@@ -113,11 +129,11 @@ async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             )
             if "job" in locals() and job:
                 db.rollback()
-                job.status = JobStatus.FAILED
+                job.status = JobStatus.PODCAST_FAILED
                 db.commit()
                 db.refresh(job)
                 await publish_status_update(job, producer)
-                logging.info(f"Status -> FAILED", extra={"job_id": str(job_id)})
+                logging.info(f"Status -> PODCAST_FAILED", extra={"job_id": str(job_id)})
         finally:
             db.close()
             logging.info(f"Podcast processing finished.", extra={"job_id": str(job_id)})

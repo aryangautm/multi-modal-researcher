@@ -8,7 +8,7 @@ class PodcastStateInput(TypedDict):
 
     # Input fields
     topic: str
-    search_text: Optional[str]
+    research_text: Optional[str]
     video_text: Optional[str]
 
 
@@ -17,7 +17,7 @@ class PodcastStateOutput(TypedDict):
 
     # Final outputs
     podcast_script: Optional[str]
-    podcast_filename: Optional[str]
+    podcast_audio_bytes: Optional[bytes]
 
 
 class PodcastState(TypedDict):
@@ -25,9 +25,9 @@ class PodcastState(TypedDict):
 
     # Input fields
     topic: str
-    search_text: Optional[str]
+    research_text: Optional[str]
     video_text: Optional[str]
 
     # Final outputs
     podcast_script: Optional[str]
-    podcast_filename: Optional[str]
+    podcast_audio_bytes: Optional[bytes]

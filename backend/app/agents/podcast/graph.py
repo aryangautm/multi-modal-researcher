@@ -22,13 +22,13 @@ def create_podcast_graph() -> StateGraph:
 
     # Add edges
     graph.add_edge(START, "generate_podcast_script")
-    graph.add_edge("generate_podcast_script", "create_podcast")
-    graph.add_edge("create_podcast", END)
+    graph.add_edge("generate_podcast_script", "create_podcast_node")
+    graph.add_edge("create_podcast_node", END)
 
     return graph
 
 
-def create_compiled_graph():
+def create_compiled_graph(checkpointer=None):
     """Create and compile the podcast graph"""
     graph = create_podcast_graph()
-    return graph.compile()
+    return graph.compile(checkpointer=checkpointer)
