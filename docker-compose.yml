@@ -37,6 +37,23 @@ services:
       - app-network
     volumes:
       - minio-data:/data
+    
+  postgresql:
+    image: pgvector/pgvector:pg17
+    restart: always
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: scholar_ai
+    ports:
+      - 5433:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d scholar_ai"]
+      interval: 1s
+      timeout: 5s
+      retries: 10
 
 networks:
   app-network:
@@ -44,4 +61,6 @@ networks:
 
 volumes:
   minio-data:
+    driver: local
+  pgdata:
     driver: local
