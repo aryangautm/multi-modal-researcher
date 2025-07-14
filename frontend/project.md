@@ -57,7 +57,7 @@ A. Initiate Research Job
 
     Method: POST
 
-    Path: /api/v1/research-jobs
+    Path: /api/v1/research
 
     Auth: Required.
 
@@ -176,7 +176,7 @@ D. Get Podcast Download URL
 
 WebSocket Endpoint
 
-    Path: /ws/jobs/{job_id}?token=<ID_TOKEN>
+    Path: /api/v1/ws/jobs/{job_id}?token=<ID_TOKEN>
 
     Connection: This is the only way to authenticate a WebSocket connection. The Firebase ID Token must be passed as a query parameter named token.
 
@@ -248,21 +248,3 @@ Production-Grade Resilience & Error Handling
         While reconnecting, the UI should show a "Connection lost, attempting to reconnect..." indicator on the relevant job card.
 
         If reconnection fails after several attempts, show a persistent "Failed to connect" error.
-
-5. UI/UX & Animations
-
-    Design: A clean, modern, "dark mode" aesthetic. Use subtle glassmorphism/acrylic effects for cards and modals to create a sense of depth.
-
-    Layout: The dashboard should feature a prominent input form at the top and a grid or list of JobCard components below.
-
-    Animations (Framer Motion):
-
-        Page Transitions: Fade-in/fade-out transitions between the login page and the dashboard.
-
-        Job Card Entry: When a new job is submitted, the card should animate into the list (e.g., fade in and slide up).
-
-        Status Indicator: During PROCESSING and PODCAST_PENDING, use a pulsing dot or a smoothly animating progress bar.
-
-        Button Appearances: When buttons like "Download Report" appear, they should fade in gracefully.
-
-        Layout Animations: Use AnimatePresence and layout props to smoothly re-order or animate the list of jobs if you implement sorting/filtering.
