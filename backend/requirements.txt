@@ -1,5 +1,5 @@
-langgraph==0.2.6
-langchain==0.3.19
+langgraph==0.5.2
+langchain==0.3.26
 python-dotenv==1.0.1
 langgraph-sdk==0.1.57
 fastapi==0.116.0
@@ -9,8 +9,11 @@ ipython==9.4.0
 langgraph-checkpoint-postgres==2.0.21
 psycopg-binary==3.2.9
 psycopg2-binary==2.9.10
+pydantic-settings==2.10.1
 uvicorn==0.35.0
 alembic==1.16.2
 aiokafka==0.12.0
 pytest==8.4.1
 fpdf2==2.8.3
+boto3==1.39.4
+firebase-admin==6.9.0

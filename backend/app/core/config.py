@@ -50,6 +50,8 @@ class Configuration:
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
+    CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+
     GEMINI_API_KEY: str
     # Database settings
     DATABASE_URL: str
