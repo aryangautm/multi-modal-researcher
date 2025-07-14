@@ -3,8 +3,10 @@ from contextlib import asynccontextmanager
 
 from app.api.v1.routes import api_router
 from app.core.auth import get_current_user, initialize_firebase_app
+from app.core.config import settings
 from app.core.messaging import initialize_kafka_producer, shutdown_kafka_producer
 from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 
 logging.basicConfig(
@@ -25,8 +27,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Multi-Modal AI Researcher API", lifespan=lifespan)
 
 
-# Middleware can be added here
-# e.g., app.add_middleware(...)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 app.include_router(api_router, prefix="/api")

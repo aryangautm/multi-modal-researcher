@@ -1,9 +1,9 @@
-from core.config import Configuration
-from core.llm import genai_client
+from app.core.config import Configuration
+from app.core.llm import genai_client
+from app.prompts.podcast import podcast_base
 from google.genai import types
 from langchain_core.prompts import PromptTemplate
 from langchain_core.runnables import RunnableConfig
-from prompts.podcast import podcast_base
 
 from .state import PodcastState
 from .tools import create_wav_in_memory

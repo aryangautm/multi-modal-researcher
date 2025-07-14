@@ -1,4 +1,4 @@
-from core.config import Configuration
+from app.core.config import Configuration
 from langgraph.graph import END, START, StateGraph
 
 from .nodes import create_podcast_node, generate_podcast_script

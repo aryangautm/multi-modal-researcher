@@ -12,6 +12,10 @@
   <i>(A placeholder for GIF showing the UI in action)</i>
 </p> -->
 
+<p align="center">
+  <img src="./screenshot.png" alt="Screenshot of ScholarAI UI">
+</p>
+
 Effortlessly transform any research topic into a comprehensive, cited report and a studio-quality podcast. ScholarAI leverages a sophisticated, event-driven backend and multi-agent workflows powered by **LangGraph** and **Google Gemini 2.5 Pro** to automate the entire research-to-content pipeline.
 
 This isn't just a script; it's a production-grade, asynchronous system designed for scalability, resilience, and real-time user feedback.

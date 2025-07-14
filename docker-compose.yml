@@ -1,24 +1,50 @@
 name: ScholarAI
 
 services:
+  api:
+    extends:
+      file: docker-compose.base.yml
+      service: backend-service
+    ports:
+      - '8000:8000'
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  research-worker:
+    extends:
+      file: docker-compose.base.yml
+      service: backend-service
+    command: python -m workers.research_worker
+
+  podcast-worker:
+    extends:
+      file: docker-compose.base.yml
+      service: backend-service
+    command: python -m workers.podcast_worker
+
   kafka:
     image: 'bitnami/kafka:latest'
     ports:
       - '9093:9093'
     environment:
-      # KRaft settings
       - KAFKA_CFG_NODE_ID=1
       - KAFKA_CFG_PROCESS_ROLES=broker,controller
       - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9092
       
-      # Listeners
-      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9094,CONTROLLER://:9092,EXTERNAL://:9093
-      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9094,EXTERNAL://localhost:9093
-      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
-
-      # Other settings
+      # Listeners for inter-container and external communication
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9094,CONTROLLER://:9092
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9094
+      
+      # NOTE: For connecting from your host machine (e.g., with a GUI client), use localhost:9093
+      # The Bitnami image requires a more complex listener setup to expose both internally and externally.
+      # For simplicity within the project, we'll focus on the internal listener.
+      
       - ALLOW_PLAINTEXT_LISTENER=yes
     networks:
       - app-network
@@ -27,11 +53,11 @@ services:
     image: 'minio/minio:latest'
     platform: linux/amd64
     ports:
-      - '9000:9000'  # S3 API port
-      - '9001:9001'  # MinIO Console Web UI port
+      - '9000:9000'
+      - '9001:9001'
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     command: server /data --console-address ":9001"
     networks:
       - app-network
@@ -44,16 +70,18 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: admin123
-      POSTGRES_DB: scholar_ai
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     ports:
-      - 5433:5432
+      - "5433:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U admin -d scholar_ai"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 1s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network
 
 networks:
   app-network:
