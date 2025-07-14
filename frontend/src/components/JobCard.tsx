@@ -71,9 +71,7 @@ const StatusBadge = ({ status }: { status: JobStatusUpdate["status"] }) => {
   };
 
 export const JobCard = ({ job }: JobCardProps) => {
-  if (job.status === 'PENDING' || job.status === 'PROCESSING' || job.status === 'PODCAST_PENDING') {
-    useWebSocket(job.id);
-  }
+  useWebSocket(job.id, job.status);
     
   const { token } = useAuthStore();
   const [isExpanded, setIsExpanded] = useState(false);
