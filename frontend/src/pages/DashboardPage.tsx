@@ -1,8 +1,37 @@
+import { useEffect } from 'react';
+import axios from 'axios';
 import DashboardHeader from '@/components/header';
 import { JobSubmissionForm } from '@/components/job-submission-form';
 import { JobList } from '@/components/job-list';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useJobStore } from '@/stores/useJobStore';
+import toast from 'react-hot-toast';
+import { API_URL } from '../api/config';
 
 export default function DashboardPage() {
+  const { token } = useAuthStore();
+  const { addJob } = useJobStore();
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!token) return; // Don't fetch if no token
+
+      try {
+        const response = await axios.get(`http://${API_URL}/api/v1/research-jobs/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        response.data.forEach((job: any) => {
+          addJob(job);
+        });
+      } catch (error) {
+        console.error('Failed to fetch jobs:', error);
+        toast.error('Failed to load your research jobs.');
+      }
+    };
+
+    fetchJobs();
+  }, [token, addJob]);
+
   return (
     <div className="flex min-h-screen w-full flex-col fade-in">
       <DashboardHeader />

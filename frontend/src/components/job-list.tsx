@@ -23,8 +23,11 @@ export const JobList = () => {
       <h2 className="text-2xl font-headline font-semibold">Your Jobs</h2>
       <div className="grid gap-4 md:grid-cols-1">
         <AnimatePresence>
-            {Array.from(jobs.values()).map((job) => (
-            <JobCard key={job.jobId} job={job} />
+            {Array.from(jobs.values())
+            .filter(job => job.id) // Only render jobs with a valid id
+            .reverse()
+            .map((job) => (
+          <JobCard key={job.id} job={job} />
             ))}
         </AnimatePresence>
       </div>

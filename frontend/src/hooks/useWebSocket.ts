@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useJobStore } from '../stores/useJobStore';
 import toast from 'react-hot-toast';
+import { API_URL } from '../api/config';
 
-const useWebSocket = (jobId: string) => {
+const useWebSocket = (id: string) => {
   const { token } = useAuthStore();
   const { updateJob } = useJobStore();
   const [isConnecting, setIsConnecting] = useState(true);
@@ -12,13 +13,14 @@ const useWebSocket = (jobId: string) => {
   const reconnectAttempts = useRef(0);
 
   useEffect(() => {
-    if (!jobId || !token) return;
+    if (!id || !token) return;
 
     const connect = () => {
-      ws.current = new WebSocket(`ws://localhost:8000/api/v1/ws/jobs/${jobId}?token=${token}`);
+      console.log(`useWebSocket: Attempting to connect for job ${id}, attempt ${reconnectAttempts.current}`);
+      ws.current = new WebSocket(`ws://${API_URL}/api/v1/ws/jobs/${id}?token=${token}`);
 
       ws.current.onopen = () => {
-        console.log(`WebSocket connected for job ${jobId}`);
+        console.log(`WebSocket connected for job ${id}`);
         setIsConnecting(false);
         setIsReconnecting(false);
         reconnectAttempts.current = 0;
@@ -30,7 +32,6 @@ const useWebSocket = (jobId: string) => {
       };
 
       ws.current.onclose = () => {
-        console.log(`WebSocket disconnected for job ${jobId}`);
         if (reconnectAttempts.current < 5) {
           setIsReconnecting(true);
           const delay = Math.pow(2, reconnectAttempts.current) * 1000;
@@ -53,7 +54,7 @@ const useWebSocket = (jobId: string) => {
     return () => {
       ws.current?.close();
     };
-  }, [jobId, token, updateJob]);
+  }, [id, token, updateJob]);
 
   return { isConnecting, isReconnecting };
 };

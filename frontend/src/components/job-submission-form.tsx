@@ -10,6 +10,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Loader2, Send } from 'lucide-react';
+import { API_URL } from '../api/config';
 
 const formSchema = z.object({
   researchTopic: z.string().min(10, 'Research topic must be at least 10 characters long.'),
@@ -30,11 +31,18 @@ export const JobSubmissionForm = () => {
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      toast.success(token)
-      const response = await axios.post('http://localhost:8000/api/v1/research', values, {
+      const payload: { researchTopic: string; sourceVideoUrl?: string } = {
+        researchTopic: values.researchTopic,
+      };
+
+      if (values.sourceVideoUrl) {
+        payload.sourceVideoUrl = values.sourceVideoUrl;
+      }
+
+      const response = await axios.post(`http://${API_URL}/api/v1/research`, payload, {
       headers: { Authorization: `Bearer ${token}` },
       });
-      addJob({ ...values, jobId: response.data.jobId, status: 'PENDING' });
+      addJob({ ...values, id: response.data.jobId, status: 'PENDING' });
       form.reset();
       toast.success('Job submitted successfully!');
     } catch (error) {

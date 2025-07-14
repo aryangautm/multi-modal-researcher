@@ -5,7 +5,5 @@ import './index.css'
 import '@fontsource/space-grotesk';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+  <App />,
 )

@@ -1,6 +1,5 @@
 'use client';
 
-import type { User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
