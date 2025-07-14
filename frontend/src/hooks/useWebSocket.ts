@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
-import { useJobStore } from '../stores/useJobStore';
+import { useJobStore, JobStatusUpdate } from '../stores/useJobStore';
 import toast from 'react-hot-toast';
 import { API_URL } from '../api/config';
 
-const useWebSocket = (id: string) => {
+const useWebSocket = (id: string, jobStatus: JobStatusUpdate["status"]) => {
   const { token } = useAuthStore();
   const { updateJob } = useJobStore();
   const [isConnecting, setIsConnecting] = useState(true);
@@ -13,7 +13,12 @@ const useWebSocket = (id: string) => {
   const reconnectAttempts = useRef(0);
 
   useEffect(() => {
-    if (!id || !token) return;
+    const shouldConnect = jobStatus === 'PENDING' || jobStatus === 'PROCESSING' || jobStatus === 'PODCAST_PENDING';
+
+    if (!id || !token || !shouldConnect) {
+      ws.current?.close();
+      return;
+    }
 
     const connect = () => {
       console.log(`useWebSocket: Attempting to connect for job ${id}, attempt ${reconnectAttempts.current}`);
@@ -54,7 +59,7 @@ const useWebSocket = (id: string) => {
     return () => {
       ws.current?.close();
     };
-  }, [id, token, updateJob]);
+  }, [id, token, updateJob, jobStatus]);
 
   return { isConnecting, isReconnecting };
 };
