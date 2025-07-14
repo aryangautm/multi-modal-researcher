@@ -1,0 +1,102 @@
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useJobStore } from '@/stores/useJobStore';
+import { useAuthStore } from '@/stores/useAuthStore';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Loader2, Send } from 'lucide-react';
+
+const formSchema = z.object({
+  researchTopic: z.string().min(10, 'Research topic must be at least 10 characters long.'),
+  sourceVideoUrl: z.string().url().optional().or(z.literal('')),
+});
+
+export const JobSubmissionForm = () => {
+  const { addJob } = useJobStore();
+  const { token } = useAuthStore();
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      researchTopic: '',
+      sourceVideoUrl: '',
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      toast.success(token)
+      const response = await axios.post('http://localhost:8000/api/v1/research', values, {
+      headers: { Authorization: `Bearer ${token}` },
+      });
+      addJob({ ...values, jobId: response.data.jobId, status: 'PENDING' });
+      form.reset();
+      toast.success('Job submitted successfully!');
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  return (
+    <Card className="bg-slate-800/30 backdrop-blur-lg border border-slate-700/50">
+      <CardHeader>
+        <CardTitle className="font-headline text-2xl">
+          Create New Research Job
+        </CardTitle>
+        <CardDescription>
+          Enter a topic and optional YouTube URL to start your research.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="researchTopic"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Research Topic</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., 'The impact of AI on renewable energy'"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="sourceVideoUrl"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>YouTube URL (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g., 'https://www.youtube.com/watch?v=...'"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="flex justify-end">
+                <Button type="submit" disabled={form.formState.isSubmitting} className="w-full sm:w-auto">
+                    {form.formState.isSubmitting ? <Loader2 className="animate-spin" /> : <Send />}
+                    <span>{form.formState.isSubmitting ? "Submitting..." : "Research"}</span>
+                </Button>
+            </div>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
+  );
+};
