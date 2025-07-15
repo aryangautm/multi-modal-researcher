@@ -29,11 +29,12 @@ services:
       - '8000:8000'
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     depends_on:
-      - postgresql
-      - kafka
-      - minio
-      - research-worker
-      - podcast-worker
+      kafka:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      minio:
+        condition: service_started
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
       interval: 30s
@@ -74,6 +75,12 @@ services:
       - ALLOW_PLAINTEXT_LISTENER=yes
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9094 --list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
   
   minio:
     image: 'minio/minio:latest'
