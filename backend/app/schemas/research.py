@@ -18,24 +18,13 @@ class ResearchJobResponse(BaseModel):
         from_attributes = True  # Pydantic v2 alias for orm_mode
 
 
-# Full schema for the job, representing the model in the database
-class ResearchJobInDB(BaseModel):
-    id: uuid.UUID
-    user_id: str
-    status: str
-    research_topic: str
-
-    class Config:
-        from_attributes = True
-
-
 # WebSocket updates
 class JobStatusUpdate(BaseModel):
-    jobId: uuid.UUID = Field(..., alias="id")
+    id: uuid.UUID = Field(..., alias="id")
     status: str
-    research_text: Optional[str] = None
-    reportUrl: Optional[str] = Field(None, alias="report_url")
-    podcastUrl: Optional[str] = Field(None, alias="podcast_url")
+    research_text: Optional[str] = Field(None, alias="summary")
+    research_topic: str = Field(None, alias="topic")
+    source_video_url: Optional[HttpUrl] = Field(None, alias="sourceVideoUrl")
 
     class Config:
         from_attributes = True  # Allows creating from a SQLAlchemy model

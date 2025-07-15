@@ -18,12 +18,9 @@ router = APIRouter()
 
 
 class ConnectionManager:
-    def __init__(
-        self, websocket: WebSocket, job_id: uuid.UUID, initial_job_state: ResearchJob
-    ):
+    def __init__(self, websocket: WebSocket, job_id: uuid.UUID):
         self.websocket = websocket
         self.job_id = job_id
-        self.initial_job_state = initial_job_state
         self.consumer: AIOKafkaConsumer | None = None
         self.consumer_task: asyncio.Task | None = None
         self.client_handler_task: asyncio.Task | None = None
@@ -32,23 +29,11 @@ class ConnectionManager:
         """Accepts the connection and sends the initial job state."""
         await self.websocket.accept()
         logger.info(
-            f"WebSocket accepted. Sending initial state.",
+            f"WebSocket accepted.",
             extra={"job_id": str(self.job_id)},
         )
 
-        # SEND INITIAL JOB STATE
-        initial_payload = JobStatusUpdate.model_validate(
-            self.initial_job_state
-        ).model_dump_json(by_alias=True)
-        await self.websocket.send_json(json.loads(initial_payload))
-
-        # Now, start listening for future updates
-        if self.initial_job_state.status not in [
-            JobStatus.COMPLETED,
-            JobStatus.FAILED,
-            JobStatus.PODCAST_COMPLETED,
-        ]:
-            self.consumer_task = asyncio.create_task(self._kafka_consumer_task())
+        self.consumer_task = asyncio.create_task(self._kafka_consumer_task())
         self.client_handler_task = asyncio.create_task(self._client_handler_task())
 
     async def disconnect(self):
@@ -64,6 +49,7 @@ class ConnectionManager:
 
     async def _kafka_consumer_task(self):
         """Listens to a job-specific Kafka topic and forwards messages to the client."""
+        db = database.SessionLocal()
         try:
             self.consumer = AIOKafkaConsumer(
                 f"job.updates.{self.job_id}",
@@ -76,6 +62,17 @@ class ConnectionManager:
                 "Kafka consumer started for live updates.",
                 extra={"job_id": str(self.job_id)},
             )
+            job = db.query(ResearchJob).filter(ResearchJob.id == self.job_id).first()
+            logger.info(
+                f"Sending initial state.",
+                extra={"job_id": str(self.job_id)},
+            )
+
+            # SEND INITIAL JOB STATE
+            initial_payload = JobStatusUpdate.model_validate(job).model_dump_json(
+                by_alias=True
+            )
+            await self.websocket.send_json(json.loads(initial_payload))
 
             async for msg in self.consumer:
                 try:
@@ -162,8 +159,15 @@ async def websocket_endpoint(
         )
         return
 
+    if job.status not in [JobStatus.PENDING, JobStatus.PROCESSING]:
+        await websocket.close(
+            code=status.WS_1003_UNSUPPORTED_DATA,
+            reason="Job is not in a state that supports WebSocket updates",
+        )
+        return
+
     # 3. Connection Handling
-    manager = ConnectionManager(websocket, job_id, initial_job_state=job)
+    manager = ConnectionManager(websocket, job_id)
     try:
         await manager.connect()
         if manager.client_handler_task:

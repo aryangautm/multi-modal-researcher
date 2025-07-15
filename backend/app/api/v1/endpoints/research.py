@@ -12,6 +12,7 @@ from app.schemas.research import (
     PresignedUrlResponse,
     ResearchJobCreate,
     ResearchJobResponse,
+    JobStatusUpdate,
 )
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -71,8 +72,35 @@ async def create_research_job(
     return {"jobId": db_job.id}
 
 
+# get all research jobs for the current user
 @router.get(
-    "/research/{job_id}/report",
+    "/research-jobs",
+    response_model=list[JobStatusUpdate],
+    status_code=status.HTTP_200_OK,
+    summary="Get all research jobs for the current user",
+)
+async def get_research_jobs(
+    db: Session = Depends(database.get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Fetches all research jobs created by the authenticated user.
+
+    - **Returns**: A list of job status updates.
+    """
+    user_id = current_user["uid"]
+
+    # Query the database for jobs created by this user
+    jobs = db.query(ResearchJob).filter(ResearchJob.user_id == user_id).all()
+
+    if not jobs:
+        return []
+
+    return [JobStatusUpdate.model_validate(job) for job in jobs]
+
+
+@router.get(
+    "/research-jobs/{job_id}/report",
     response_model=PresignedUrlResponse,
     status_code=status.HTTP_200_OK,
     summary="Get a secure, temporary URL to download a research report",
@@ -105,7 +133,10 @@ async def get_report_download_url(
         )
 
     # 2. Check Job Status
-    if job.status != JobStatus.COMPLETED or not job.report_url:
+    if (
+        job.status not in {JobStatus.COMPLETED, JobStatus.PODCAST_COMPLETED}
+        or not job.report_url
+    ):
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Report is not yet available for this job.",

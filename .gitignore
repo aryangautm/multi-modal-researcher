@@ -208,3 +208,7 @@ __marimo__/
 
 # Firebase
 .firebase/
+
+# next js
+.next/
+node_modules/
