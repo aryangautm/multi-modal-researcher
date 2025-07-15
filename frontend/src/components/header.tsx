@@ -1,6 +1,6 @@
 'use client';
 
-import { auth } from "@/lib/firebase";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 
 export default function DashboardHeader() {
     const { user } = useAuth();
+    const logout = useAuthStore((state) => state.logout);
   const getInitials = (name?: string | null) => {
     if (!name) return "U";
     return name
@@ -52,7 +53,7 @@ export default function DashboardHeader() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => auth.signOut()}>
+            <DropdownMenuItem onClick={logout}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>
