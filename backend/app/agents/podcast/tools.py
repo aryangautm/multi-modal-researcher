@@ -1,4 +1,5 @@
 import wave
+from io import BytesIO
 
 
 def wave_file(filename, pcm, channels=1, rate=24000, sample_width=2):
@@ -8,6 +9,29 @@ def wave_file(filename, pcm, channels=1, rate=24000, sample_width=2):
         wf.setsampwidth(sample_width)
         wf.setframerate(rate)
         wf.writeframes(pcm)
+
+
+def create_wav_in_memory(pcm, channels=1, rate=24000, sample_width=2) -> bytes:
+    """
+    Creates a valid WAV file in an in-memory buffer.
+
+    Args:
+        audio_data: The raw audio data from the TTS engine.
+
+    Returns:
+        The full byte content of a valid .wav file.
+    """
+    buffer = BytesIO()
+
+    with wave.open(buffer, "wb") as wf:
+        wf.setnchannels(channels)
+        wf.setsampwidth(sample_width)
+        wf.setframerate(rate)
+        wf.writeframes(pcm)
+
+    wav_bytes = buffer.getvalue()
+    print(type(wav_bytes))
+    return wav_bytes
 
 
 def create_podcast_name(topic):
