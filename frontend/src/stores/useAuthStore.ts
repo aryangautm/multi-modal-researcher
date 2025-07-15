@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import { auth } from '@/lib/firebase';
+import { useJobStore } from './useJobStore';
 
 interface AuthState {
-  user: any; // You should replace 'any' with a proper User type
+  user: any;
   token: string | null;
   setUser: (user: any) => void;
   setToken: (token: string | null) => void;
@@ -13,5 +15,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
-  logout: () => set({ user: null, token: null }),
+  logout: () => {
+    auth.signOut();
+    useJobStore.getState().clearJobs();
+    set({ user: null, token: null });
+  },
 }));

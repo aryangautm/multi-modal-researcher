@@ -12,6 +12,7 @@ interface JobStore {
   jobs: Map<string, JobStatusUpdate>;
   addJob: (job: JobStatusUpdate) => void;
   updateJob: (job: JobStatusUpdate) => void;
+  clearJobs: () => void;
 }
 
 const useJobStore = create<JobStore>((set) => ({
@@ -23,7 +24,8 @@ const useJobStore = create<JobStore>((set) => ({
     const currentJob = state.jobs.get(updatedJob.id);
     const newJob = { ...currentJob, ...updatedJob };
     return { jobs: new Map(state.jobs).set(updatedJob.id, newJob) };
-  })
+  }),
+  clearJobs: () => set({ jobs: new Map() }),
 }));
 
 export { useJobStore };
