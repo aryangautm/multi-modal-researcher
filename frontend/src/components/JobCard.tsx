@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   FileText,
   Headphones,
+  Play,
   Loader2,
   XCircle,
   Youtube,
@@ -71,10 +72,14 @@ const StatusBadge = ({ status }: { status: JobStatusUpdate["status"] }) => {
   };
 
 export const JobCard = ({ job }: JobCardProps) => {
-  useWebSocket(job.id, job.status);
+  useWebSocket(job.id);
     
   const { token } = useAuthStore();
   const [isExpanded, setIsExpanded] = useState(false);
+
+  const [podcastUrl, setPodcastUrl] = useState(null);
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+
 
   const handleDownloadReport = async () => {
     try {
@@ -108,6 +113,22 @@ export const JobCard = ({ job }: JobCardProps) => {
       toast.error('Failed to download report.');
     }
   };
+
+  const handlePlayPodcast = async () => {
+        setIsLoadingUrl(true);
+        try {
+            const response = await axios.get(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            console.log("Podcast URL response:", response, podcastUrl);
+            setPodcastUrl(response.data.url);
+            console.log("Podcast URL:", podcastUrl);
+        } catch (error) {
+            console.error("Failed to get podcast URL", error);
+        } finally {
+            setIsLoadingUrl(false);
+        }
+    };
 
   const summaryText = job.summary || '';
   const showReadMore = summaryText.length > 200;
@@ -153,7 +174,6 @@ export const JobCard = ({ job }: JobCardProps) => {
                       variant="outline"
                       size="sm"
                       onClick={handleDownloadReport}
-                      disabled={!(job.status === 'COMPLETED' || job.status === 'PODCAST_COMPLETED')}
                     >
                       <FileText />
                       Download Report
@@ -178,9 +198,16 @@ export const JobCard = ({ job }: JobCardProps) => {
                     <Progress value={50} className="w-full h-2"/>
                 </div>
             )}
-            {job.status === 'PODCAST_COMPLETED' && (
-                <div className="w-full">
-                    <audio controls className="w-full" src={"job.podcastUrl!"}>
+            {job.status === 'PODCAST_COMPLETED' && !podcastUrl && (
+                <Button variant="outline" size="sm" onClick={handlePlayPodcast} disabled={isLoadingUrl}>
+                    <Play />
+                    {isLoadingUrl ? 'Loading...' : 'Play Podcast'}
+                </Button>
+            )}
+
+            {podcastUrl && (
+                <div className="w-full mt-4">
+                    <audio controls autoPlay className="w-full" src={podcastUrl}>
                         Your browser does not support the audio element.
                     </audio>
                 </div>
