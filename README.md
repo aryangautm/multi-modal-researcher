@@ -8,13 +8,7 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey" alt="License">
 </p>
 
-<!-- <p align="center">
-  <i>(A placeholder for GIF showing the UI in action)</i>
-</p> -->
-
-<p align="center">
-  <img src="./screenshot.png" alt="Screenshot of ScholarAI UI">
-</p>
+![Image](https://github.com/user-attachments/assets/4ddf5858-da7b-45b6-baae-5ed2f82a7b3d)
 
 Effortlessly transform any research topic into a comprehensive, cited report and a studio-quality podcast. ScholarAI leverages a sophisticated, event-driven backend and multi-agent workflows powered by **LangGraph** and **Google Gemini 2.5 Pro** to automate the entire research-to-content pipeline.
 
@@ -84,9 +78,9 @@ Follow these steps to get ScholarAI running locally.
 *   [Git](https://git-scm.com/)
 *   [Docker](https://www.docker.com/products/docker-desktop/) & Docker Compose
 *   **Python 3.11+**
-*   [`uv`](https://github.com/astral-sh/uv): An extremely fast Python package installer and resolver.
+*   [uv](https://github.com/astral-sh/uv): An extremely fast Python package installer and resolver.
     ```bash
-    # Install uv (if you don't have it)
+    # Install uv (if you don't have it already)
     pip install uv
     ```
 
@@ -117,10 +111,7 @@ Now, edit the `.env` file and fill in your credentials and settings:
 Install all Python dependencies for the backend using [`uv`](https://pypi.org/project/uv/).
 
 ```bash
-# Navigate to the backend directory
-cd backend
-
-# Sync dependencies from pyproject.toml
+# In project root
 uv sync
 ```
 
@@ -139,7 +130,7 @@ docker-compose up --build -d
 With the database container running, apply the initial schema using Alembic.
 
 ```bash
-# From the 'backend' directory
+# In project root
 alembic upgrade head
 ```
 
