@@ -1,27 +1,32 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
-import { useJobStore, JobStatusUpdate } from '../stores/useJobStore';
+import { useJobStore } from '../stores/useJobStore';
 import toast from 'react-hot-toast';
 import { API_URL } from '../api/config';
 
-const useWebSocket = (id: string, jobStatus: JobStatusUpdate["status"]) => {
+const useWebSocket = (id: string) => {
   const { token } = useAuthStore();
-  const { updateJob } = useJobStore();
+  const { jobs, updateJob } = useJobStore();
   const [isConnecting, setIsConnecting] = useState(true);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const ws = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
 
   useEffect(() => {
-    const shouldConnect = jobStatus === 'PENDING' || jobStatus === 'PROCESSING' || jobStatus === 'PODCAST_PENDING';
+    const currentJob = jobs.get(id);
+    const currentStatus = currentJob?.status;
+    const shouldConnect = currentStatus === 'PENDING' || currentStatus === 'PROCESSING' || currentStatus === 'PODCAST_PENDING';
 
     if (!id || !token || !shouldConnect) {
       ws.current?.close();
       return;
     }
+    if (currentJob?.status === 'PODCAST_COMPLETED') {
+      ws.current?.close();
+      return;
+    }
 
     const connect = () => {
-      console.log(`useWebSocket: Attempting to connect for job ${id}, attempt ${reconnectAttempts.current}`);
       ws.current = new WebSocket(`ws://${API_URL}/api/v1/ws/jobs/${id}?token=${token}`);
 
       ws.current.onopen = () => {
@@ -33,11 +38,13 @@ const useWebSocket = (id: string, jobStatus: JobStatusUpdate["status"]) => {
 
       ws.current.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log("update received")
         updateJob(data);
       };
 
       ws.current.onclose = () => {
-        if (reconnectAttempts.current < 5) {
+        console.log(`WebSocket disconnected for job ${id}`);
+        if (reconnectAttempts.current < 5 || shouldConnect) {
           setIsReconnecting(true);
           const delay = Math.pow(2, reconnectAttempts.current) * 1000;
           setTimeout(connect, delay);
@@ -59,7 +66,7 @@ const useWebSocket = (id: string, jobStatus: JobStatusUpdate["status"]) => {
     return () => {
       ws.current?.close();
     };
-  }, [id, token, updateJob, jobStatus]);
+  }, [id, token, updateJob]);
 
   return { isConnecting, isReconnecting };
 };
