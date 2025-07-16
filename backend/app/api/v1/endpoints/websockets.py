@@ -142,6 +142,9 @@ async def websocket_endpoint(
 ):
     # 1. Authentication
     if user is None:
+        logger.warning(
+            "WebSocket connection attempt with invalid or missing authentication token."
+        )
         await websocket.close(
             code=status.WS_1008_POLICY_VIOLATION, reason="Invalid authentication token"
         )
@@ -154,12 +157,24 @@ async def websocket_endpoint(
         .first()
     )
     if not job:
+        logger.warning(
+            f"Job {job_id} not found or unauthorized for user {user['uid']}.",
+            extra={"job_id": str(job_id)},
+        )
         await websocket.close(
             code=status.WS_1003_UNSUPPORTED_DATA, reason="Job not found or unauthorized"
         )
         return
 
-    if job.status not in [JobStatus.PENDING, JobStatus.PROCESSING]:
+    if job.status not in [
+        JobStatus.PENDING,
+        JobStatus.PROCESSING,
+        JobStatus.PODCAST_PENDING,
+    ]:
+        logger.warning(
+            f"Job {job_id} is not in a state that supports WebSocket updates: {job.status}",
+            extra={"job_id": str(job_id)},
+        )
         await websocket.close(
             code=status.WS_1003_UNSUPPORTED_DATA,
             reason="Job is not in a state that supports WebSocket updates",
