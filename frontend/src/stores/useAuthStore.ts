@@ -15,9 +15,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   token: null,
   setUser: (user) => set({ user }),
   setToken: (token) => set({ token }),
-  logout: () => {
-    auth.signOut();
-    useJobStore.getState().clearJobs();
-    set({ user: null, token: null });
+  logout: async () => {
+    try {
+      await auth.signOut();
+      useJobStore.getState().clearJobs();
+      set({ user: null, token: null });
+    } catch (error) {
+      console.error("Error during sign-out:", error);
+    }
   },
 }));
