@@ -112,17 +112,20 @@ async def get_podcast_download_url(
     try:
         s3_client = boto3.client(
             "s3",
-            endpoint_url=settings.AWS_S3_ENDPOINT_URL,
+            endpoint_url=settings.AWS_S3_INTERNAL_ENDPOINT,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_REGION,
         )
-        presigned_url = s3_client.generate_presigned_url(
+        presigned_url_internal = s3_client.generate_presigned_url(
             "get_object",
             Params={"Bucket": settings.AWS_S3_BUCKET_NAME, "Key": job.podcast_url},
             ExpiresIn=300,  # URL is valid for 5 minutes
         )
-        return PresignedUrlResponse(url=presigned_url)
+        presigned_url_public = presigned_url_internal.replace(
+            settings.AWS_S3_INTERNAL_ENDPOINT, settings.AWS_S3_PUBLIC_URL
+        )
+        return PresignedUrlResponse(url=presigned_url_public)
     except ClientError as e:
         print(
             f"ERROR: Could not generate pre-signed URL for {job.podcast_url}. Error: {e}"
