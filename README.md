@@ -8,7 +8,7 @@
   <img src="https://img.shields.io/badge/License-MIT-lightgrey" alt="License">
 </p>
 
-![Image](https://github.com/user-attachments/assets/4ddf5858-da7b-45b6-baae-5ed2f82a7b3d)
+![Image](https://github.com/user-attachments/assets/399df0d8-c49d-4f96-8de3-0dcdd3a13e87)
 
 Effortlessly transform any research topic into a comprehensive, cited report and a studio-quality podcast. ScholarAI leverages a sophisticated, event-driven backend and multi-agent workflows powered by **LangGraph** and **Google Gemini 2.5 Pro** to automate the entire research-to-content pipeline.
 
