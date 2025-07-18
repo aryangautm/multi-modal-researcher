@@ -1,11 +1,11 @@
 from app.core.config import Configuration
 from app.core.llm import genai_client
+from app.prompts.moderation import moderation_base
 from app.schemas.moderation import ModerationResponse, RelevanceCheckResponse
 from app.utils.helpers import extract_text_and_sources
 from google.genai import types
-from langchain_core.runnables import RunnableConfig
 from langchain_core.prompts import PromptTemplate
-from app.prompts.moderation import moderation_base
+from langchain_core.runnables import RunnableConfig
 
 from .state import ResearchState
 from .tools import create_research_report, fetch_video_metadata
@@ -80,7 +80,7 @@ def guardrail_node(state: ResearchState, config: RunnableConfig) -> dict:
         except Exception as e:
             return {
                 "validation_result": "failed",
-                "failure_reason": f"Could not process YouTube URL: {e}",
+                "failure_reason": f"Could not process video URL",
             }
 
     return {"validation_result": "passed", "failure_reason": None}

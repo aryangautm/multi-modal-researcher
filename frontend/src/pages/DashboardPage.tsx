@@ -11,6 +11,7 @@ import { API_URL } from '../api/config';
 export default function DashboardPage() {
   const { token } = useAuthStore();
   const { addJob } = useJobStore();
+  const logout = useAuthStore((state) => state.logout);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -24,9 +25,14 @@ export default function DashboardPage() {
           addJob(job);
         });
       } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 401) {
+        toast.error('Session expired.');
+        logout();
+        }  else {
         console.error('Failed to fetch jobs:', error);
         toast.error('Failed to load your research jobs.');
       }
+    }
     };
 
     fetchJobs();
