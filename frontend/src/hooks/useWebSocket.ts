@@ -6,22 +6,23 @@ import { API_URL } from '../api/config';
 
 const useWebSocket = (id: string) => {
   const { token } = useAuthStore();
-  const { jobs, updateJob } = useJobStore();
+  const { updateJob } = useJobStore();
   const [isConnecting, setIsConnecting] = useState(true);
   const [isReconnecting, setIsReconnecting] = useState(false);
   const ws = useRef<WebSocket | null>(null);
   const reconnectAttempts = useRef(0);
 
-  useEffect(() => {
-    const currentJob = jobs.get(id);
-    const currentStatus = currentJob?.status;
-    const shouldConnect = currentStatus === 'PENDING' || currentStatus === 'PROCESSING' || currentStatus === 'PODCAST_PENDING';
+  const shouldConnect = (status: any) => {
+    return status === 'PENDING' || status === 'PROCESSING' || status === 'PODCAST_PENDING';
+  };
 
-    if (!id || !token || !shouldConnect) {
+  useEffect(() => {
+    const currentStatus = useJobStore.getState().jobs.get(id)?.status
+    if (!id || !token || !shouldConnect(currentStatus)) {
       ws.current?.close();
       return;
     }
-    if (currentJob?.status === 'PODCAST_COMPLETED') {
+    if (currentStatus === 'PODCAST_COMPLETED') {
       ws.current?.close();
       return;
     }
@@ -40,23 +41,30 @@ const useWebSocket = (id: string) => {
         const data = JSON.parse(event.data);
         console.log("update received")
         updateJob(data);
+        if (data.status === 'FAILED' || data.status === 'PODCAST_COMPLETED') {
+          ws.current?.close();
+        }
       };
 
       ws.current.onclose = () => {
         console.log(`WebSocket disconnected for job ${id}`);
-        if (reconnectAttempts.current < 5 || shouldConnect) {
-          setIsReconnecting(true);
-          const delay = Math.pow(2, reconnectAttempts.current) * 1000;
-          setTimeout(connect, delay);
-          reconnectAttempts.current++;
-        } else {
-          toast.error('Failed to reconnect to the server.');
+        const currentStatus = useJobStore.getState().jobs.get(id)?.status
+        if (shouldConnect(currentStatus)) {
+          if (reconnectAttempts.current < 5) {
+            setIsReconnecting(true);
+            const delay = Math.pow(2, reconnectAttempts.current) * 1000;
+            setTimeout(connect, delay);
+            reconnectAttempts.current++;
+          }
+          // else {
+          //   toast.error('Failed to reconnect to the server.');
+          // }
         }
       };
 
       ws.current.onerror = (error) => {
         console.error('WebSocket error:', error);
-        toast.error('An error occurred with the WebSocket connection.');
+        // toast.error('An error occurred with the WebSocket connection.');
         ws.current?.close();
       };
     };

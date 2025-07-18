@@ -144,8 +144,13 @@ async def get_research_jobs(
     """
     user_id = current_user["uid"]
 
-    # Query the database for jobs created by this user
-    jobs = db.query(ResearchJob).filter(ResearchJob.user_id == user_id).all()
+    # Query the database for jobs created by this user, ordered by created_at (oldest first)
+    jobs = (
+        db.query(ResearchJob)
+        .filter(ResearchJob.user_id == user_id)
+        .order_by(ResearchJob.created_at.asc())
+        .all()
+    )
 
     if not jobs:
         return []
@@ -188,7 +193,7 @@ async def get_report_download_url(
 
     # 2. Check Job Status
     if (
-        job.status not in {JobStatus.COMPLETED, JobStatus.PODCAST_COMPLETED}
+        job.status in {JobStatus.PENDING, JobStatus.PROCESSING, JobStatus.FAILED}
         or not job.report_url
     ):
         raise HTTPException(

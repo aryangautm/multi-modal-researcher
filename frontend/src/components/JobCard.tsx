@@ -94,12 +94,17 @@ export const JobCard = ({ job }: JobCardProps) => {
   
   const handleGeneratePodcast = async () => {
     try {
+      useWebSocket(job.id);
       await axios.post(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('Podcast generation started!');
     } catch (error) {
-      toast.error('Failed to start podcast generation.');
+      if (axios.isAxiosError(error) && error.response?.status === 409) {
+        toast.error('A podcast is already being generated for this job.');
+      } else {
+        toast.error('Failed to start podcast generation.');
+      }
     }
   };
 
@@ -152,7 +157,7 @@ export const JobCard = ({ job }: JobCardProps) => {
             )}
         </CardHeader>
         <CardContent>
-            {job.status === "COMPLETED" || job.status === "PODCAST_COMPLETED" || job.status === "PODCAST_PENDING" ? (
+            {(job.status === "COMPLETED" || job.status === "PODCAST_COMPLETED" || job.status === "PODCAST_PENDING") && (
             <div className="text-sm text-muted-foreground">
                 <ReactMarkdown>{isExpanded ? summaryText : truncatedSummary}</ReactMarkdown>
                 {showReadMore && (
@@ -161,10 +166,17 @@ export const JobCard = ({ job }: JobCardProps) => {
                     </Button>
                 )}
             </div>
-            ) : (
-            <p className="text-sm text-muted-foreground italic">
-                AI is working on your request...
-            </p>
+            )}
+            {(job.status === 'PROCESSING' || job.status === 'PENDING') && (
+                <p className="text-sm text-muted-foreground italic">
+                  AI is working on your research...
+                </p>
+            )}
+            {job.status === 'FAILED' && (
+                <p className="text-sm text-muted-foreground italic">
+                  Research couldn't be completed-
+                  {job.failureReason || 'An error occurred while processing your job.'}
+                </p>
             )}
         </CardContent>
         <CardFooter className="flex-col items-start gap-4">

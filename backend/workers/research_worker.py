@@ -26,9 +26,7 @@ MAX_CONCURRENT_JOBS = 5
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
 
 
-async def run_ai_research(
-    topic: str, video_url: str | None, job_id: uuid.UUID
-) -> tuple[str, str, bytes]:
+async def run_ai_research(topic: str, video_url: str | None, job_id: uuid.UUID) -> dict:
     logging.info(
         f"AI Agent: Starting research",
         extra={"job_id": str(job_id), "worker": "ResearchWorker"},
@@ -89,10 +87,10 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             await publish_status_update(job, producer)
 
             # 3. AI WORKFLOW
-            result: ResearchStateOutput = await run_ai_research(
+            result = await run_ai_research(
                 job.research_topic, job.source_video_url, job.id
             )
-            if result.validation_result == "failed":
+            if result.get("validation_result") == "failed":
                 failure_reason = result.get("failure_reason", "Invalid input provided.")
                 logging.warning(
                     f"Job failed validation: {failure_reason}",
@@ -101,15 +99,19 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
 
                 # Set FAILED status and the reason
                 job.status = JobStatus.FAILED
-                job.failure_reason = failure_reason
+                job.failure_reason = (
+                    ",".join(failure_reason)
+                    if isinstance(failure_reason, list)
+                    else failure_reason
+                )
                 db.commit()
                 db.refresh(job)
                 await publish_status_update(job, producer)
                 return
 
-            research_text = result.research_text
-            video_text = result.video_text or ""
-            pdf_bytes = create_pdf_from_text(result.report, str(job.id))
+            research_text = result.get("research_text", "")
+            video_text = result.get("video_text", "")
+            pdf_bytes = create_pdf_from_text(result.get("report", ""), str(job.id))
 
             # 4. S3 UPLOAD
             s3_object_key = f"reports/{job.user_id}/{job.id}.pdf"

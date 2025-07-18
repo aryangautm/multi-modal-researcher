@@ -47,6 +47,7 @@ class JobStatusUpdate(BaseModel):
     research_text: Optional[str] = Field(None, alias="summary")
     research_topic: str = Field(None, alias="topic")
     source_video_url: Optional[HttpUrl] = Field(None, alias="sourceVideoUrl")
+    failure_reason: Optional[str] = Field(None, alias="failureReason")
 
     class Config:
         from_attributes = True  # Allows creating from a SQLAlchemy model
