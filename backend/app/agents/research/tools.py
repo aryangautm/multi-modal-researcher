@@ -1,6 +1,13 @@
+import logging
+
+import isodate
+from app.core.config import settings
 from app.core.llm import genai_client
 from app.prompts.research import report_base
+from googleapiclient.discovery import build
 from langchain_core.prompts import PromptTemplate
+
+logger = logging.getLogger(__name__)
 
 
 def create_research_report(
@@ -51,3 +58,50 @@ def create_research_report(
     report = "\n\n".join(report_sections)
 
     return report
+
+
+def fetch_video_metadata(video_url: str) -> dict:
+    """
+    Fetches video title, description, and duration using the YouTube Data API v3.
+    Args:
+        url (str): The YouTube video URL.
+    Returns:
+        dict: A dictionary with title, description, and duration, or None on error.
+    """
+    try:
+        video_id = video_url.split("v=")[1]
+        youtube = build("youtube", "v3", developerKey=settings.YOUTUBE_DATA_API_KEY)
+
+        # Make the API request
+        request = youtube.videos().list(
+            part="snippet,contentDetails",  # Parts of the video resource to retrieve
+            id=video_id,
+        )
+        response = request.execute()
+
+        if not response.get("items"):
+            print("Video not found.")
+            return None
+
+        video_item = response["items"][0]
+
+        # --- Extract Information ---
+        title = video_item["snippet"]["title"]
+        description = video_item["snippet"]["description"]
+
+        # Duration comes in ISO 8601 format (e.g., 'PT1H2M12S')
+        iso_duration = video_item["contentDetails"]["duration"]
+        duration_timedelta = isodate.parse_duration(iso_duration)
+        duration_seconds = int(duration_timedelta.total_seconds())
+
+        video_details = {
+            "title": title,
+            "description": description,
+            "duration": duration_seconds,
+        }
+
+        return video_details
+
+    except Exception as e:
+        logger.error(f"Error fetching video metadata from url: {e}")
+        raise
