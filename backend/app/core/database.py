@@ -1,3 +1,4 @@
+from langgraph.checkpoint.postgres import PostgresSaver
 from psycopg import Connection
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -32,3 +33,5 @@ class Database:
 
 # Create an instance of the database
 db = Database()
+pg_checkpointer = PostgresSaver(db.pool)
+pg_checkpointer.setup()

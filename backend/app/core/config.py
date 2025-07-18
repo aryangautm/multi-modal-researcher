@@ -18,7 +18,7 @@ class Configuration:
     synthesis_model: str = "gemini-2.5-flash"  # Citations supported model
     video_model: str = "gemini-2.5-flash"  # Citations supported model
     tts_model: str = "gemini-2.5-flash-preview-tts"
-    moderation_model: str = "gemini-2.5-flash-lite"
+    moderation_model: str = "gemini-2.5-flash-lite-preview-06-17"
 
     # Temperature settings for different use cases
     search_temperature: float = 0.0  # Factual search queries

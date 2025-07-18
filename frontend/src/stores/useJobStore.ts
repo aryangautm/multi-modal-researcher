@@ -7,6 +7,7 @@ interface JobStatusUpdate {
   summary?: string;
   topic?: string;
   sourceVideoUrl?: string;
+  failureReason?: string;
 }
 interface JobStore {
   jobs: Map<string, JobStatusUpdate>;
