@@ -99,7 +99,11 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
 
                 # Set FAILED status and the reason
                 job.status = JobStatus.FAILED
-                job.failure_reason = failure_reason
+                job.failure_reason = (
+                    ",".join(failure_reason)
+                    if isinstance(failure_reason, list)
+                    else failure_reason
+                )
                 db.commit()
                 db.refresh(job)
                 await publish_status_update(job, producer)

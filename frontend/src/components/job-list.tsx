@@ -10,7 +10,7 @@ export const JobList = () => {
     return (
       <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-700 p-12 text-center">
         <FileSearch className="mx-auto h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-xl font-semibold font-headline">No jobs yet</h3>
+        <h3 className="mt-4 text-xl font-semibold font-headline">No researches yet</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           Create a new research job to get started.
         </p>
@@ -20,7 +20,7 @@ export const JobList = () => {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-headline font-semibold">Your Jobs</h2>
+      <h2 className="text-2xl font-headline font-semibold">Your Researches</h2>
       <div className="grid gap-4 md:grid-cols-1">
         <AnimatePresence>
             {Array.from(jobs.values())

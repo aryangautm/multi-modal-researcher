@@ -20,6 +20,7 @@ const formSchema = z.object({
 export const JobSubmissionForm = () => {
   const { addJob } = useJobStore();
   const { token } = useAuthStore();
+  const logout = useAuthStore((state) => state.logout);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,9 +47,17 @@ export const JobSubmissionForm = () => {
       form.reset();
       toast.success('Job submitted successfully!');
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 400) {
+          toast.error('Inappropriate topic or video URL.');
+        } else if (error.response?.status === 401) {
+          toast.error('Session expired.');
+          logout();
+      }
+      } else {
       toast.error(error instanceof Error ? error.message : String(error));
     }
+  }
   };
 
   return (
