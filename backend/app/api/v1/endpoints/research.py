@@ -1,4 +1,5 @@
 import logging
+import re
 import uuid
 
 import boto3
@@ -9,10 +10,10 @@ from app.core.database import db as database
 from app.core.messaging import get_kafka_producer
 from app.models.session import JobStatus, ResearchJob
 from app.schemas.research import (
+    JobStatusUpdate,
     PresignedUrlResponse,
     ResearchJobCreate,
     ResearchJobResponse,
-    JobStatusUpdate,
 )
 from botocore.exceptions import ClientError
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,6 +21,47 @@ from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+SIMPLE_PROFANITY_FILTER = [
+    "fuck",
+    "fucking",
+    "fucked",
+    "fucker",
+    "motherfucker",
+    "shit",
+    "shitty",
+    "bullshit",
+    "ass",
+    "asshole",
+    "dumbass",
+    "bitch",
+    "bitches",
+    "bastard",
+    "dick",
+    "dicks",
+    "dickhead",
+    "cock",
+    "pussy",
+    "cunt",
+    "slut",
+    "whore",
+    "nigger",
+    "nigga",
+    "fag",
+    "faggot",
+    "retard",
+    "retarded",
+    "crap",
+    "damn",
+    "hell",
+    "suck",
+    "sucks",
+    "jerk",
+    "twat",
+    "prick",
+    "wank",
+    "wanker",
+]
 
 
 @router.post(
@@ -40,6 +82,18 @@ async def create_research_job(
     - **research_request**: Contains the topic and optional video URL.
     - **Returns**: A response with the unique ID of the created job.
     """
+
+    # -- PRE-QUEUE VALIDATION --
+    pattern = re.compile(
+        r"\b(" + "|".join(re.escape(word) for word in SIMPLE_PROFANITY_FILTER) + r")\b",
+        re.IGNORECASE,
+    )
+    if pattern.search(research_request.researchTopic.lower()):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The research topic contains inappropriate content.",
+        )
+
     # 1. Get the authenticated user's unique ID from the verified token
     user_id = current_user["uid"]
 

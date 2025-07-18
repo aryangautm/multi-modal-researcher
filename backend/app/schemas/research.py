@@ -1,13 +1,35 @@
+import re
 import uuid
 from typing import Optional
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 
 
 # Schema for the data we expect when a user CREATES a research job
 class ResearchJobCreate(BaseModel):
-    researchTopic: str
+    researchTopic: str = Field(..., min_length=10, max_length=300)
     sourceVideoUrl: Optional[HttpUrl] = None
+
+    @field_validator("sourceVideoUrl", mode="before")
+    @classmethod
+    def validate_youtube_url(cls, v: Optional[str]) -> Optional[str]:
+        """
+        Validates that the provided URL is a standard YouTube watch or share link.
+        """
+        if v is None or v == "":
+            return None
+
+        # This regex is a bit more robust to handle various YouTube URL formats
+        youtube_regex = (
+            r"(https?://)?(www\.)?"
+            "(youtube|youtu|youtube-nocookie)\.(com|be)/"
+            "(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})"
+        )
+
+        if not re.match(youtube_regex, v):
+            raise ValueError("Invalid URL: Please provide a valid YouTube video link.")
+
+        return v
 
 
 # Schema for the immediate response after a job is successfully created

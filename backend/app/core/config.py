@@ -18,6 +18,7 @@ class Configuration:
     synthesis_model: str = "gemini-2.5-flash"  # Citations supported model
     video_model: str = "gemini-2.5-flash"  # Citations supported model
     tts_model: str = "gemini-2.5-flash-preview-tts"
+    moderation_model: str = "gemini-2.5-flash-lite"
 
     # Temperature settings for different use cases
     search_temperature: float = 0.0  # Factual search queries
@@ -53,6 +54,7 @@ class Settings(BaseSettings):
     CORS_ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
 
     GEMINI_API_KEY: str
+    YOUTUBE_DATA_API_KEY: str
     # Database settings
     DATABASE_URL: str
 
