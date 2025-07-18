@@ -3,15 +3,12 @@ import logging
 import os
 import sys
 import uuid
-from io import BytesIO
-
-from fpdf import FPDF
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import boto3
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from app.agents.research.graph import create_compiled_graph
+from app.agents.research.state import ResearchStateOutput
 from app.core.config import settings
 from app.core.database import db as database
 from app.core.messaging import publish_status_update
@@ -19,46 +16,14 @@ from app.models.session import JobStatus, ResearchJob
 from app.utils.logging import handler
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.orm import Session
-from tenacity import retry, stop_after_attempt, wait_exponential
+
+from .utils import create_pdf_from_text, upload_to_s3
 
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 # Limit the number of concurrent AI jobs to prevent resource exhaustion
 MAX_CONCURRENT_JOBS = 5
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_JOBS)
-
-
-def create_pdf_from_text(text: str, job_id: str) -> bytes:
-    """
-    Generates a valid PDF file in memory from a string of text,
-    using the modern fpdf2 API and suppressing verbose logging.
-
-    Args:
-        text: The report text from the AI agent.
-        job_id: The ID of the job for logging context.
-
-    Returns:
-        The raw bytes of the generated PDF file.
-    """
-    try:
-        logging.getLogger("fpdf").setLevel(logging.WARNING)
-
-        pdf = FPDF()
-        pdf.add_page()
-
-        pdf.add_font("DejaVu", "", "fonts/DejaVuSans.ttf")
-        pdf.set_font("DejaVu", size=12)
-
-        pdf.multi_cell(0, 10, text=text, align="L")
-
-        return pdf.output()
-
-    except Exception as e:
-        logging.error(
-            f"Error generating PDF: {e}",
-            extra={"job_id": job_id, "worker": "ResearchWorker"},
-        )
-        raise
 
 
 async def run_ai_research(
@@ -73,7 +38,7 @@ async def run_ai_research(
             database.DATABASE_URL
         ) as checkpointer:
             research_graph = create_compiled_graph(checkpointer)
-            result = await research_graph.ainvoke(
+            result: ResearchStateOutput = await research_graph.ainvoke(
                 {"topic": topic, "video_url": video_url},
                 config={"thread_id": str(job_id)},
             )
@@ -83,49 +48,11 @@ async def run_ai_research(
             extra={"job_id": str(job_id), "worker": "ResearchWorker"},
         )
         raise
-    research_text = result.get("research_text")
-    video_text = result.get("video_text")
-    report = result.get("report")
-
-    # conver the report to bytes
-    pdf_bytes = create_pdf_from_text(report, job_id=str(job_id))
     logging.info(
         f"AI Agent: Research complete",
         extra={"job_id": str(job_id), "worker": "ResearchWorker"},
     )
-    return research_text, video_text, pdf_bytes
-
-
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-async def upload_to_s3(
-    file_bytes: bytes, bucket: str, object_name: str, job_id: uuid.UUID
-) -> bool:
-    logging.info(
-        f"S3 Uploader: Uploading {object_name}",
-        extra={"job_id": str(job_id), "worker": "ResearchWorker"},
-    )
-    try:
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url=settings.AWS_S3_INTERNAL_ENDPOINT,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        await asyncio.to_thread(
-            s3_client.upload_fileobj, BytesIO(file_bytes), bucket, object_name
-        )
-        logging.info(
-            "S3 Uploader: Upload successful",
-            extra={"job_id": str(job_id), "worker": "ResearchWorker"},
-        )
-        return True
-    except Exception as e:
-        logging.error(
-            f"S3 Uploader: Failed to upload to S3: {e}",
-            extra={"job_id": str(job_id), "worker": "ResearchWorker"},
-        )
-        raise  # Re-raise the exception to trigger tenacity's retry mechanism
+    return result
 
 
 async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
@@ -162,14 +89,36 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             await publish_status_update(job, producer)
 
             # 3. AI WORKFLOW
-            research_text, video_text, pdf_bytes = await run_ai_research(
+            result: ResearchStateOutput = await run_ai_research(
                 job.research_topic, job.source_video_url, job.id
             )
+            if result.validation_result == "failed":
+                failure_reason = result.get("failure_reason", "Invalid input provided.")
+                logging.warning(
+                    f"Job failed validation: {failure_reason}",
+                    extra={"job_id": str(job.id)},
+                )
+
+                # Set FAILED status and the reason
+                job.status = JobStatus.FAILED
+                job.failure_reason = failure_reason
+                db.commit()
+                db.refresh(job)
+                await publish_status_update(job, producer)
+                return
+
+            research_text = result.research_text
+            video_text = result.video_text or ""
+            pdf_bytes = create_pdf_from_text(result.report, str(job.id))
 
             # 4. S3 UPLOAD
             s3_object_key = f"reports/{job.user_id}/{job.id}.pdf"
             await upload_to_s3(
-                pdf_bytes, settings.AWS_S3_BUCKET_NAME, s3_object_key, job.id
+                pdf_bytes,
+                settings.AWS_S3_BUCKET_NAME,
+                s3_object_key,
+                job.id,
+                worker="ResearchWorker",
             )
 
             # 5. FINALIZE JOB and PUBLISH UPDATE
