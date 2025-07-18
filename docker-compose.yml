@@ -46,12 +46,26 @@ services:
       file: docker-compose.base.yml
       service: backend-service
     command: python -m workers.research_worker
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      minio:
+        condition: service_started
 
   podcast-worker:
     extends:
       file: docker-compose.base.yml
       service: backend-service
     command: python -m workers.podcast_worker
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      minio:
+        condition: service_started
 
   kafka:
     image: 'bitnami/kafka:latest'

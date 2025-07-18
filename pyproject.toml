@@ -26,4 +26,5 @@ dependencies = [
     "boto3>=1.39.3",
     "pytest>=8.4.1",
     "fpdf2>=2.8.3",
+    "langchain-core>=0.3.68",
 ]
