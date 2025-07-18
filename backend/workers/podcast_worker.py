@@ -3,11 +3,9 @@ import logging
 import os
 import sys
 import uuid
-from io import BytesIO
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import boto3
 from aiokafka import AIOKafkaConsumer, AIOKafkaProducer
 from app.agents.podcast.graph import create_compiled_graph
 from app.core.config import settings
@@ -17,7 +15,8 @@ from app.models.session import JobStatus, ResearchJob
 from app.utils.logging import handler
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from sqlalchemy.orm import Session
-from tenacity import retry, stop_after_attempt, wait_exponential
+
+from .utils import upload_to_s3
 
 logging.basicConfig(level=logging.INFO, handlers=[handler])
 
@@ -60,31 +59,6 @@ async def run_ai_podcast_generation(
     return audio_bytes, podcast_script
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-async def upload_audio_to_s3(
-    file_bytes: bytes, bucket: str, object_name: str, job_id: uuid.UUID
-):
-    logging.info(f"S3 Uploader: Uploading {object_name}", extra={"job_id": str(job_id)})
-    try:
-        s3_client = boto3.client(
-            "s3",
-            endpoint_url=settings.AWS_S3_INTERNAL_ENDPOINT,
-            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_REGION,
-        )
-        await asyncio.to_thread(
-            s3_client.upload_fileobj, BytesIO(file_bytes), bucket, object_name
-        )
-        logging.info("S3 Uploader: Upload successful", extra={"job_id": str(job_id)})
-        return True
-    except Exception as e:
-        logging.error(
-            f"S3 Uploader: Failed to upload to S3: {e}", extra={"job_id": str(job_id)}
-        )
-        raise
-
-
 async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
     async with semaphore:
         db: Session = database.SessionLocal()
@@ -107,8 +81,12 @@ async def process_podcast_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             )
 
             s3_object_key = f"podcasts/{job.user_id}/{job.id}.mp3"
-            await upload_audio_to_s3(
-                audio_bytes, settings.AWS_S3_BUCKET_NAME, s3_object_key, job.id
+            await upload_to_s3(
+                audio_bytes,
+                settings.AWS_S3_BUCKET_NAME,
+                s3_object_key,
+                job.id,
+                worker="PodcastWorker",
             )
 
             logging.info(

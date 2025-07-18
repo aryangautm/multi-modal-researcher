@@ -4,6 +4,8 @@ from langgraph.graph import END, START, StateGraph
 from .nodes import (
     analyze_video_node,
     create_report_node,
+    guardrail_check,
+    guardrail_node,
     research_node,
     should_analyze_video,
 )
@@ -22,12 +24,17 @@ def create_research_graph() -> StateGraph:
     )
 
     # Add nodes
+    graph.add_node("guardrail", guardrail_node)
     graph.add_node("research", research_node)
     graph.add_node("analyze_video", analyze_video_node)
     graph.add_node("create_report", create_report_node)
 
+    graph.set_entry_point("guardrail")
+    graph.add_conditional_edges(
+        "guardrail", guardrail_check, {"passed": "research", "failed": END}
+    )
+
     # Add edges
-    graph.add_edge(START, "research")
     graph.add_conditional_edges(
         "research",
         should_analyze_video,
