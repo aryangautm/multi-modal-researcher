@@ -4,6 +4,8 @@ from app.schemas.moderation import ModerationResponse, RelevanceCheckResponse
 from app.utils.helpers import extract_text_and_sources
 from google.genai import types
 from langchain_core.runnables import RunnableConfig
+from langchain_core.prompts import PromptTemplate
+from app.prompts.moderation import moderation_base
 
 from .state import ResearchState
 from .tools import create_research_report, fetch_video_metadata
@@ -15,16 +17,23 @@ def guardrail_node(state: ResearchState, config: RunnableConfig) -> dict:
     Returns a dictionary indicating whether to proceed or fail.
     """
     configuration = Configuration.from_runnable_config(config)
-    topic = state.get("topic")
+    topic = state["topic"]
     video_url = state.get("video_url")
 
     # 1. Harmful Content Check using a Moderation API
+    moderation_prompt = PromptTemplate.from_template(moderation_base).invoke(
+        {
+            "topic": topic,
+        }
+    )
+
     response = genai_client.models.generate_content(
         model=configuration.moderation_model,
-        contents=f"Check if this is a valid and safe topic for research: {topic}",
+        contents=moderation_prompt,
         config={
             "response_mime_type": "application/json",
             "response_schema": ModerationResponse,
+            "temperature": 0.0,
         },
     )
 
@@ -52,10 +61,14 @@ def guardrail_node(state: ResearchState, config: RunnableConfig) -> dict:
                 Check if the topic '{topic}' is relevant and related to the video metadata given below:
                 Title: {video_data['title']}
                 Description: {video_data['description']}
+
+                If the topic and video are not related at all, return validation_result as "failed".
+                If they are related, return validation_result as "passed".
                 """,
                 config={
                     "response_mime_type": "application/json",
                     "response_schema": RelevanceCheckResponse,
+                    "temperature": 0.0,
                 },
             )
             relevance_result: RelevanceCheckResponse = response.parsed
