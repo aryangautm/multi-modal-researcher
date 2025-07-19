@@ -5,13 +5,12 @@ import sys
 import uuid
 from typing import Literal
 
-from markdown_it import MarkdownIt
-from weasyprint import HTML, CSS
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name
-from pygments.formatters import HtmlFormatter
-
 from app.core.config import settings
+from markdown_it import MarkdownIt
+from pygments import highlight
+from pygments.formatters import HtmlFormatter
+from pygments.lexers import get_lexer_by_name
+from weasyprint import CSS, HTML
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
