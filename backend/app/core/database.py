@@ -33,5 +33,8 @@ class Database:
 
 # Create an instance of the database
 db = Database()
-pg_checkpointer = PostgresSaver(db.pool)
-pg_checkpointer.setup()
+try:
+    pg_checkpointer = PostgresSaver(db.pool)
+    pg_checkpointer.setup()
+except Exception as e:
+    print(f"Already Initialized: {e}")

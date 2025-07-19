@@ -85,12 +85,5 @@ class Settings(BaseSettings):
         env_file_encoding = "utf-8"
         extra = "ignore"
 
-    @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
-    def split_cors_allowed_origins(cls, v):
-        if isinstance(v, str):
-            final_list = v.split(",")
-            return [item.strip() for item in final_list if item.strip()]
-        return v
-
 
 settings = Settings()
