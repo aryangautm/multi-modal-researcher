@@ -111,6 +111,7 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
 
             research_text = result.get("research_text", "")
             video_text = result.get("video_text", "")
+            topic = result.get("topic", job.research_topic)
             pdf_bytes = create_pdf_from_text(result.get("report", ""), str(job.id))
 
             # 4. S3 UPLOAD
@@ -132,6 +133,7 @@ async def process_job(job_id: uuid.UUID, producer: AIOKafkaProducer):
             job.research_text = research_text
             job.video_text = video_text
             job.report_url = s3_object_key
+            job.topic = topic
             db.commit()
             db.refresh(job)
             await publish_status_update(job, producer)

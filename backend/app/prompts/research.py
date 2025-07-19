@@ -1,11 +1,7 @@
 report_base = """
-You are a research analyst. I have gathered information about "{topic}" from two sources:
+You are a research analyst. I have gathered information about "{topic}" from the below sources:
 
-SEARCH RESULTS:
-{research_text}
-
-VIDEO CONTENT:
-{video_text}
+{sources}
 
 Please create a comprehensive synthesis that:
 1. Identifies key themes and insights from both sources
@@ -14,4 +10,6 @@ Please create a comprehensive synthesis that:
 4. Keep it concise but thorough (3-4 paragraphs)
 
 Focus on creating a coherent narrative that brings together the best insights from both sources.
+Do not include any citations or references in the synthesis from any of the sources.
+Output the synthesis directly without any fluff and your own opinions. Just pure reporting.
 """

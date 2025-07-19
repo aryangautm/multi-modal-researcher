@@ -22,11 +22,13 @@ def create_research_report(
         configuration = Configuration()
 
     # Step 1: Create synthesis using Gemini
+    sources = [f"SEARCH RESULTS\n{research_text}"]
+    if video_text:
+        sources.append(f"VIDEO CONTENT\n{video_text}")
     synthesis_prompt = PromptTemplate.from_template(report_base).invoke(
         {
             "topic": topic,
-            "research_text": research_text,
-            "video_text": video_text,
+            "sources": "\n\n".join(sources),
         }
     )
 
@@ -42,22 +44,21 @@ def create_research_report(
 
     # Step 2: Create markdown report
     report_sections = [
-        f"# Research Report: {topic}",
-        "## Executive Summary",
+        f"<h2 style='text-align: center;'><strong>{topic.title()}</strong></h1>",
+        research_text,
+        "### Executive Summary",
         synthesis_text,
     ]
 
     if video_url:
-        report_sections.append(f"## Video Source\n- **URL**: {video_url}")
+        report_sections.append(f"### Video Source\n- **URL**: {video_url}")
 
-    report_sections.append(f"## Additional Sources\n{search_sources_text}")
+    report_sections.append(f"### References\n{search_sources_text}")
     # Add footer
-    report_sections.append(
-        "---\n*Report generated using multi-modal AI research combining web search and video analysis*"
-    )
+    report_sections.append("---\n*Report generated using Scholar AI*")
     report = "\n\n".join(report_sections)
 
-    return report
+    return report, synthesis_text
 
 
 def fetch_video_metadata(video_url: str) -> dict:

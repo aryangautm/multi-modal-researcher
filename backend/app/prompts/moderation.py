@@ -18,4 +18,6 @@ If the input topic fall into any of these categories, return validatetion_result
 
 Analyze this research topic below and classify it:
 Topic: {topic}
+
+If the moderation checks pass, return validation_result as "passed" and provide the cleaned topic without any typo and mistakes in cleaned_topic with initial capitalization.
 """

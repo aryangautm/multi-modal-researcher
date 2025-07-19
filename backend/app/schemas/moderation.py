@@ -31,6 +31,10 @@ class ModerationResponse(BaseModel):
         PROMPT_INJECTION: Attempts to trick the LLM into revealing internal instructions or system prompts
         """,
     )
+    cleaned_topic: Optional[str] = Field(
+        None,
+        description="Cleaned version of the topic (without any typo and mistakes) if the moderation checks pass.",
+    )
 
 
 class RelevanceCheckResponse(BaseModel):
