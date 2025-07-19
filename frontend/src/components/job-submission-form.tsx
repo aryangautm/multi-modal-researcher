@@ -40,7 +40,7 @@ export const JobSubmissionForm = () => {
         payload.sourceVideoUrl = values.sourceVideoUrl;
       }
 
-      const response = await axios.post(`http://${API_URL}/api/v1/research`, payload, {
+      const response = await axios.post(`${API_URL}/api/v1/research`, payload, {
       headers: { Authorization: `Bearer ${token}` },
       });
       addJob({ ...values, id: response.data.jobId, status: 'PENDING' });
