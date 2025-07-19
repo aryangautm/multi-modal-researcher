@@ -1,4 +1,4 @@
-## Desired Project Structure
+## Project Structure
 ```
 multi-modal-researcher/
 ├── README.md
@@ -32,7 +32,7 @@ multi-modal-researcher/
         │           ├── __init__.py
         │           ├── podcast.py
         │           └── research.py
-        ├── agent/
+        ├── agents/
         │   ├── podcast/
         │   │   ├── __init__.py
         │   │   ├── graph.py
@@ -63,16 +63,4 @@ multi-modal-researcher/
             ├── __init__.py
             └── helpers.py (contains the output printer for console output)
 ```
-
-## Pending Tasks
-- [ ] Logic to handle session management
-- [ ] Setup main.py
-- [ ] Setup API
-- [ ] Setup Alembic for database migrations
-- [ ] requirements.txt for Python dependencies
-
-## Completed Tasks
-- [x] Basic project structure
-- [x] Configuration management
-- [x] Database setup with SQLAlchemy
 
