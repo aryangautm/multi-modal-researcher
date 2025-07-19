@@ -18,6 +18,7 @@ class ResearchStateOutput(TypedDict):
     report: Optional[str]
     research_text: Optional[str]
     video_text: Optional[str]
+    topic: str
 
     validation_result: Literal["passed", "failed"]
     failure_reason: Optional[str]

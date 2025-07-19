@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useJobStore } from '../stores/useJobStore';
-import toast from 'react-hot-toast';
 import { API_URL } from '../api/config';
 
 const useWebSocket = (id: string) => {
