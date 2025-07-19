@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from langchain_core.runnables import RunnableConfig
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent.parent
@@ -83,6 +84,13 @@ class Settings(BaseSettings):
         env_file = PROJECT_ROOT / ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
+
+    @field_validator("CORS_ALLOWED_ORIGINS", mode="before")
+    def split_cors_allowed_origins(cls, v):
+        if isinstance(v, str):
+            final_list = v.split(",")
+            return [item.strip() for item in final_list if item.strip()]
+        return v
 
 
 settings = Settings()
