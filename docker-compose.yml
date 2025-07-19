@@ -129,6 +129,21 @@ services:
       retries: 10
     networks:
       - app-network
+    
+  proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    restart: unless-stopped
+    ports:
+      # Public-facing ports for web traffic
+      - '80:80'
+      - '443:443'
+      # Admin UI port
+      - '81:81'
+    volumes:
+      - ./data/nginx-proxy-manager/data:/data
+      - ./data/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
+    networks:
+      - app-network
 
 networks:
   app-network:
