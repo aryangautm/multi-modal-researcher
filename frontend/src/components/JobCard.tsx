@@ -94,14 +94,13 @@ export const JobCard = ({ job }: JobCardProps) => {
   
   const handleGeneratePodcast = async () => {
     try {
-      useWebSocket(job.id);
       await axios.post(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('Podcast generation started!');
     } catch (error) {
       if (axios.isAxiosError(error) && error.response?.status === 409) {
-        toast.error('A podcast is already being generated for this job.');
+        toast.error('A podcast is already being generated for this job. Please Refresh!');
       } else {
         toast.error('Failed to start podcast generation.');
       }
