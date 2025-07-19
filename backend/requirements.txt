@@ -14,8 +14,10 @@ uvicorn==0.35.0
 alembic==1.16.2
 aiokafka==0.12.0
 pytest==8.4.1
-fpdf2==2.8.3
 boto3==1.39.4
 firebase-admin==6.9.0
 google-api-python-client==2.175.0
 isodate==0.7.2
+markdown-it-py==3.0.0
+weasyprint==65.1
+pygments==2.19.2
