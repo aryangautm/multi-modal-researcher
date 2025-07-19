@@ -1,5 +1,9 @@
 name: ScholarAI
 
+networks:
+  app-network:
+    driver: bridge
+
 services:
   frontend:
     build:
@@ -53,6 +57,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    networks:
+      - app-network
 
   podcast-worker:
     extends:
@@ -66,6 +72,8 @@ services:
         condition: service_healthy
       minio:
         condition: service_started
+    networks:
+      - app-network
 
   kafka:
     image: 'bitnami/kafka:latest'
@@ -144,10 +152,10 @@ services:
       - ./data/nginx-proxy-manager/letsencrypt:/etc/letsencrypt
     networks:
       - app-network
-
-networks:
-  app-network:
-    driver: bridge
+    depends_on:
+      - frontend
+      - api
+      - minio
 
 volumes:
   minio-data:
