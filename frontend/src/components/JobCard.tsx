@@ -83,7 +83,7 @@ export const JobCard = ({ job }: JobCardProps) => {
 
   const handleDownloadReport = async () => {
     try {
-      const response = await axios.get(`http://${API_URL}/api/v1/research-jobs/${job.id}/report`, {
+      const response = await axios.get(`${API_URL}/api/v1/research-jobs/${job.id}/report`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       window.open(response.data.url, '_blank');
@@ -94,7 +94,7 @@ export const JobCard = ({ job }: JobCardProps) => {
   
   const handleGeneratePodcast = async () => {
     try {
-      await axios.post(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {}, {
+      await axios.post(`${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success('Podcast generation started!');
@@ -109,7 +109,7 @@ export const JobCard = ({ job }: JobCardProps) => {
 
   const handleDownloadPodcast = async () => {
     try {
-      const response = await axios.get(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {
+      const response = await axios.get(`${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       window.open(response.data.url, '_blank');
@@ -121,7 +121,7 @@ export const JobCard = ({ job }: JobCardProps) => {
   const handlePlayPodcast = async () => {
         setIsLoadingUrl(true);
         try {
-            const response = await axios.get(`http://${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {
+            const response = await axios.get(`${API_URL}/api/v1/research-jobs/${job.id}/podcast`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             console.log("Podcast URL response:", response, podcastUrl);

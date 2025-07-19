@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useJobStore } from '../stores/useJobStore';
-import { API_URL } from '../api/config';
+import { API_WS_URL } from '../api/config';
 
 const useWebSocket = (id: string) => {
   const { token } = useAuthStore();
@@ -27,7 +27,7 @@ const useWebSocket = (id: string) => {
     }
 
     const connect = () => {
-      ws.current = new WebSocket(`ws://${API_URL}/api/v1/ws/jobs/${id}?token=${token}`);
+      ws.current = new WebSocket(`${API_WS_URL}/api/v1/ws/jobs/${id}?token=${token}`);
 
       ws.current.onopen = () => {
         console.log(`WebSocket connected for job ${id}`);
