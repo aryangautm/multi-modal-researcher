@@ -18,7 +18,7 @@ export default function DashboardPage() {
       if (!token) return; // Don't fetch if no token
 
       try {
-        const response = await axios.get(`${API_URL}/api/v1/research-jobs/`, {
+        const response = await axios.get(`${API_URL}/api/v1/research-jobs`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         response.data.forEach((job: any) => {
