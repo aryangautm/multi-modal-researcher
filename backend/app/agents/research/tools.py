@@ -42,7 +42,7 @@ def create_research_report(
 
     # Step 2: Create markdown report
     report_sections = [
-        f"# Research Report: {topic}",
+        f"<h1 style='text-align: center;'><strong>{topic.title()}</strong></h1>",
         "## Executive Summary",
         synthesis_text,
     ]
@@ -52,9 +52,7 @@ def create_research_report(
 
     report_sections.append(f"## Additional Sources\n{search_sources_text}")
     # Add footer
-    report_sections.append(
-        "---\n*Report generated using multi-modal AI research combining web search and video analysis*"
-    )
+    report_sections.append("---\n*Report generated using Scholar AI*")
     report = "\n\n".join(report_sections)
 
     return report

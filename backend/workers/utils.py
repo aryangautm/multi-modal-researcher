@@ -5,8 +5,13 @@ import sys
 import uuid
 from typing import Literal
 
+from markdown_it import MarkdownIt
+from weasyprint import HTML, CSS
+from pygments import highlight
+from pygments.lexers import get_lexer_by_name
+from pygments.formatters import HtmlFormatter
+
 from app.core.config import settings
-from fpdf import FPDF
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -55,32 +60,76 @@ async def upload_to_s3(
         raise  # Re-raise the exception to trigger tenacity's retry mechanism
 
 
-def create_pdf_from_text(text: str, job_id: str) -> bytes:
+def create_pdf_from_text(markdown_text: str, job_id: str) -> bytes:
     """
-    Generates a valid PDF file in memory from a string of text,
-    using the modern fpdf2 API and suppressing verbose logging.
+    Creates a high-fidelity PDF file from a Markdown string using WeasyPrint.
 
     Args:
-        text: The report text from the AI agent.
-        job_id: The ID of the job for logging context.
-
+        markdown_text: The string containing the Markdown content.
+        job_id: The ID of the job for logging purposes.
     Returns:
-        The raw bytes of the generated PDF file.
+        The PDF content as a bytes object.
     """
     try:
-        logging.getLogger("fpdf").setLevel(logging.WARNING)
+        # This function will be called by markdown-it when it finds a code block
+        def highlight_code(code, name, attrs):
+            try:
+                lexer = get_lexer_by_name(name)
+            except:
+                lexer = get_lexer_by_name("text")
+            formatter = HtmlFormatter()
+            return highlight(code, lexer, formatter)
 
-        pdf = FPDF()
-        pdf.add_page()
+        md = (
+            MarkdownIt(
+                "commonmark",
+                options_update={
+                    "breaks": True,
+                    "html": True,
+                    "highlight": highlight_code,
+                },
+            )
+            .enable("strikethrough")
+            .enable("table")
+        )
 
-        pdf.add_font("DejaVu", "", "fonts/DejaVuSans.ttf")
-        pdf.set_font("DejaVu", size=12)
+        html_content = md.render(markdown_text)
 
-        pdf.multi_cell(0, 10, text=text, align="L")
+        formatter = HtmlFormatter(style="default")
+        syntax_highlight_css = formatter.get_style_defs(".highlight")
 
-        return pdf.output()
+        custom_css = f"""
+            @page {{
+                size: A4;
+                margin: 1cm;
+            }}
+            body {{
+                font-family: 'DejaVu Sans', sans-serif;
+                font-size: 12px;
+            }}
+            h1, h2, h3, h4, h5, h6 {{
+                font-family: 'DejaVu Sans', sans-serif;
+            }}
+            code, pre {{
+                font-family: 'DejaVu Sans Mono', monospace;
+                font-size: 11px;
+            }}
+            .highlight pre {{
+                border-radius: 4px;
+                padding: 10px;
+                overflow: auto;
+            }}
+            {syntax_highlight_css}
+        """
+
+        html = HTML(string=html_content)
+        css = CSS(string=custom_css)
+
+        # The write_pdf method returns the PDF as bytes
+        return html.write_pdf(stylesheets=[css])
 
     except Exception as e:
+        print(f"An error occurred: {e}")
         logging.error(
             f"Error generating PDF: {e}",
             extra={"job_id": job_id, "worker": "ResearchWorker"},
