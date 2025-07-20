@@ -28,7 +28,7 @@ This isn't just a script; it's a production-grade, asynchronous system designed 
 
 ScholarAI is built on a robust, event-driven architecture that separates the API from the long-running AI tasks. This ensures the system is responsive, scalable, and resilient.
 
-![Image](https://github.com/user-attachments/assets/93ebca1b-dcdf-43d6-a8dc-3b7a2a5d40fd)
+![Image](https://github.com/user-attachments/assets/57350c49-ccc2-42dc-8eca-f32b76538ac7)
 
 1.  **API Gateway (FastAPI)**: A single, secure entry point for all client requests. It handles user authentication (Firebase), request validation (Pydantic), and immediately offloads work to the message broker.
 2.  **Message Broker (Apache Kafka)**: The central nervous system of the application. The API publishes job requests to Kafka topics (`research.requests`, `podcast.requests`), decoupling the frontend from the backend workers.
