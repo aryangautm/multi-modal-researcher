@@ -45,7 +45,7 @@ export const JobSubmissionForm = () => {
       });
       addJob({ ...values, id: response.data.jobId, status: 'PENDING' });
       form.reset();
-      toast.success('Job submitted successfully!');
+      toast.success('Research started');
     } catch (error) {
       if (axios.isAxiosError(error)) {
         if (error.response?.status === 400) {

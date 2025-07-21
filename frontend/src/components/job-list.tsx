@@ -12,7 +12,7 @@ export const JobList = () => {
         <FileSearch className="mx-auto h-12 w-12 text-muted-foreground" />
         <h3 className="mt-4 text-xl font-semibold font-headline">No researches yet</h3>
         <p className="mt-2 text-sm text-muted-foreground">
-          Create a new research job to get started.
+          Start a new research
         </p>
       </div>
     );
