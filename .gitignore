@@ -211,3 +211,4 @@ __marimo__/
 # next js
 .next/
 node_modules/
+frontend/.env.local
